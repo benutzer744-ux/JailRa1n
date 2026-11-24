@@ -4,29 +4,22 @@ name: Build JailRa1n
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-15-intel
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode
-        run: |
-          xcodebuild -version
-
       - name: Build iOS app
         run: |
           xcodebuild \
-            -project JailRa1n/JailRa1n.xcodeproj \
+            -project JailRa1n.xcodeproj \
             -scheme JailRa1n \
             -configuration Release \
             -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
-            -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             build
