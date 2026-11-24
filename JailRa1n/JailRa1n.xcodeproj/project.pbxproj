@@ -12,7 +12,7 @@
   A20000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
   A20000000000000000000004 = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JailRa1n.app; sourceTree = BUILT_PRODUCTS_DIR; };
   A30000000000000000000001 = {isa = PBXGroup; children = (A30000000000000000000002, A30000000000000000000003,); sourceTree = "<group>"; };
-  A30000000000000000000002 = {isa = PBXGroup; children = (A20000000000000000000001,A20000000000000000000002,A20000000000000000000003,); path = JailRa1n; sourceTree = "<group>"; };
+  A30000000000000000000002 = {isa = PBXGroup; children = (A20000000000000000000001,A20000000000000000000002,A20000000000000000000003,); sourceTree = "<group>"; };
   A30000000000000000000003 = {isa = PBXGroup; children = (A20000000000000000000004,); name = Products; sourceTree = "<group>"; };
   A40000000000000000000001 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001,A10000000000000000000002,); runOnlyForDeploymentPostprocessing = 0; };
   A40000000000000000000002 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000003,); runOnlyForDeploymentPostprocessing = 0; };
