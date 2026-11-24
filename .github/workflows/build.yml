@@ -1,0 +1,25 @@
+
+name: Build JailRa1n
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build iOS app
+        run: |
+          xcodebuild \
+            -project JailRa1n.xcodeproj \
+            -scheme JailRa1n \
+            -configuration Release \
+            -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO \
+            build
