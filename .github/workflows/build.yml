@@ -15,12 +15,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Select Xcode
+        run: |
+          xcodebuild -version
+
       - name: Check project files
         run: |
           ls -la
           ls -la JailRa1n
-          ls -la JailRa1n/JailRa1n.xcodeproj
           test -f JailRa1n/JailRa1n.xcodeproj/project.pbxproj
+          test -f JailRa1n/ContentView.swift
+          test -f JailRa1n/JailRa1nApp.swift
 
       - name: Build iOS app
         run: |
@@ -29,5 +34,23 @@ jobs:
             -scheme JailRa1n \
             -configuration Release \
             -sdk iphoneos \
+            -derivedDataPath "$RUNNER_TEMP/JailRa1nBuild" \
             CODE_SIGNING_ALLOWED=NO \
             build
+
+      - name: Prepare app artifact
+        run: |
+          APP_PATH="$RUNNER_TEMP/JailRa1nBuild/Build/Products/Release-iphoneos/JailRa1n.app"
+
+          test -d "$APP_PATH"
+
+          mkdir -p output
+          cp -R "$APP_PATH" output/
+
+      - name: Upload JailRa1n app
+        uses: actions/upload-artifact@v4
+        with:
+          name: JailRa1n-iOS-App
+          path: output/JailRa1n.app/
+          if-no-files-found: error
+          retention-days: 7
