@@ -22,23 +22,17 @@ enum JailRa1nTheme: String, CaseIterable, Identifiable {
 
     var color: Color {
         switch self {
-        case .green:
-            return Color(red: 0.49, green: 1, blue: 0)
-        case .blue:
-            return Color(red: 0, green: 0.75, blue: 1)
-        case .purple:
-            return Color(red: 0.70, green: 0.30, blue: 1)
-        case .pink:
-            return Color(red: 1, green: 0.24, blue: 0.60)
-        case .red:
-            return Color(red: 1, green: 0.27, blue: 0.27)
-        case .white:
-            return Color(red: 0.94, green: 0.96, blue: 0.98)
+        case .green: return Color(red: 0.49, green: 1, blue: 0)
+        case .blue: return Color(red: 0, green: 0.75, blue: 1)
+        case .purple: return Color(red: 0.70, green: 0.30, blue: 1)
+        case .pink: return Color(red: 1, green: 0.24, blue: 0.60)
+        case .red: return Color(red: 1, green: 0.27, blue: 0.27)
+        case .white: return Color(red: 0.94, green: 0.96, blue: 0.98)
         }
     }
 }
 
-// MARK: - Device
+// MARK: - Device Information
 
 enum JailRa1nDevice {
     static var name: String {
@@ -53,65 +47,96 @@ enum JailRa1nDevice {
         var info = utsname()
         uname(&info)
 
-        let bytes = Mirror(reflecting: info.machine)
-            .children
-            .compactMap { $0.value as? Int8 }
-
-        let result = bytes
-            .prefix(while: { $0 != 0 })
-            .map { UInt8(bitPattern: $0) }
-
-        return String(
-            bytes: result,
-            encoding: .utf8
-        ) ?? UIDevice.current.model
+        return withUnsafePointer(to: &info.machine) {
+            $0.withMemoryRebound(
+                to: CChar.self,
+                capacity: MemoryLayout.size(
+                    ofValue: info.machine
+                )
+            ) {
+                String(cString: $0)
+            }
+        }
     }
 }
 
-// MARK: - Main Screen
+// MARK: - Shared Card
+
+struct JailRa1nCard<Content: View>: View {
+    let accent: Color
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            content
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .background(
+            Color(red: 0.065, green: 0.085, blue: 0.075),
+            in: RoundedRectangle(cornerRadius: 24)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(accent.opacity(0.18))
+        )
+    }
+}
+
+struct JailRa1nInfoRow: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text(title)
+                .foregroundStyle(.gray)
+
+            Spacer(minLength: 8)
+
+            Text(value)
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.trailing)
+        }
+        .font(.subheadline)
+    }
+}
+
+// MARK: - Main View
 
 struct ContentView: View {
-
     @AppStorage("selectedTheme")
     private var selectedTheme = "green"
 
     @AppStorage("animationsEnabled")
     private var animationsEnabled = true
 
-    @State private var pulsing = false
+    @State private var pulse = false
     @State private var showSettings = false
     @State private var showBootstrap = false
-    @State private var checking = false
-    @State private var checkCompleted = false
+    @State private var deviceChecked = false
 
     private var accent: Color {
         JailRa1nTheme(rawValue: selectedTheme)?.color ?? .green
     }
-
-    private let cardColor = Color(
-        red: 0.065,
-        green: 0.085,
-        blue: 0.075
-    )
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
 
             ScrollView {
-                VStack(spacing: 23) {
+                VStack(spacing: 24) {
                     header
                     logo
                     titleSection
                     deviceCard
                     engineCard
                     bootstrapButton
-                    checkButton
+                    deviceCheckButton
                     footer
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 14)
-                .padding(.bottom, 30)
+                .padding(.vertical, 16)
             }
         }
         .preferredColorScheme(.dark)
@@ -122,9 +147,7 @@ struct ContentView: View {
             NavigationStack {
                 BootstrapView()
                     .toolbar {
-                        ToolbarItem(
-                            placement: .navigationBarTrailing
-                        ) {
+                        ToolbarItem(placement: .topBarTrailing) {
                             Button("Done") {
                                 showBootstrap = false
                             }
@@ -134,7 +157,7 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            pulsing = true
+            pulse = true
         }
     }
 
@@ -145,7 +168,7 @@ struct ContentView: View {
                     .font(.headline)
                     .foregroundStyle(.white)
 
-                Text("Version 0.4")
+                Text("Version 0.5")
                     .font(.caption)
                     .foregroundStyle(.gray)
             }
@@ -158,29 +181,28 @@ struct ContentView: View {
                 Image(systemName: "gearshape.fill")
                     .font(.title2)
                     .foregroundStyle(accent)
-                    .frame(width: 46, height: 46)
+                    .frame(width: 48, height: 48)
                     .background(
                         Color.white.opacity(0.08),
                         in: Circle()
                     )
             }
-            .accessibilityLabel("Settings")
         }
     }
 
     private var logo: some View {
         ZStack {
             Circle()
-                .fill(accent.opacity(0.16))
+                .fill(accent.opacity(0.18))
                 .frame(width: 180, height: 180)
-                .blur(radius: 35)
+                .blur(radius: 30)
 
             Circle()
-                .stroke(accent.opacity(0.25), lineWidth: 2)
-                .frame(width: 175, height: 175)
+                .stroke(accent.opacity(0.30), lineWidth: 2)
+                .frame(width: 180, height: 180)
 
             Image(systemName: "drop.fill")
-                .font(.system(size: 140))
+                .font(.system(size: 135))
                 .foregroundStyle(accent)
                 .shadow(
                     color: accent.opacity(0.8),
@@ -189,62 +211,44 @@ struct ContentView: View {
         }
         .frame(height: 210)
         .scaleEffect(
-            animationsEnabled && pulsing ? 1.06 : 0.94
+            animationsEnabled && pulse ? 1.05 : 0.95
         )
         .animation(
             animationsEnabled
                 ? .easeInOut(duration: 1.8)
                     .repeatForever(autoreverses: true)
                 : .none,
-            value: pulsing
+            value: pulse
         )
-        .onChange(of: animationsEnabled) { enabled in
-            pulsing = false
-
-            if enabled {
-                DispatchQueue.main.asyncAfter(
-                    deadline: .now() + 0.05
-                ) {
-                    pulsing = true
-                }
-            }
-        }
     }
 
     private var titleSection: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 10) {
             Text("JailRa1n")
                 .font(.system(
-                    size: 42,
+                    size: 44,
                     weight: .bold,
                     design: .rounded
                 ))
                 .foregroundStyle(accent)
 
-            Text("Sileo Detection Edition")
+            Text("Sileo Installer Edition")
                 .font(.subheadline)
                 .foregroundStyle(.gray)
 
-            HStack(spacing: 7) {
-                Circle()
-                    .fill(accent)
-                    .frame(width: 7, height: 7)
-
-                Text("INTERFACE PREVIEW 0.4")
-                    .font(.system(
-                        size: 10,
-                        weight: .semibold,
-                        design: .monospaced
-                    ))
-                    .tracking(2)
-                    .foregroundStyle(accent)
-            }
-            .padding(.top, 5)
+            Text("INTERFACE PREVIEW 0.5")
+                .font(.system(
+                    size: 11,
+                    weight: .semibold,
+                    design: .monospaced
+                ))
+                .tracking(2)
+                .foregroundStyle(accent)
         }
     }
 
     private var deviceCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        JailRa1nCard(accent: accent) {
             Label(
                 "Device Information",
                 systemImage: "iphone"
@@ -253,18 +257,31 @@ struct ContentView: View {
             .foregroundStyle(accent)
 
             Divider()
-                .overlay(accent.opacity(0.2))
 
-            infoRow("Device Name", JailRa1nDevice.name)
-            infoRow("iPhone Model", JailRa1nDevice.identifier)
-            infoRow("iOS Version", JailRa1nDevice.iosVersion)
-            infoRow("Jailbreak", "Not Checked")
+            JailRa1nInfoRow(
+                title: "Device Name",
+                value: JailRa1nDevice.name
+            )
+
+            JailRa1nInfoRow(
+                title: "iPhone Model",
+                value: JailRa1nDevice.identifier
+            )
+
+            JailRa1nInfoRow(
+                title: "iOS Version",
+                value: JailRa1nDevice.iosVersion
+            )
+
+            JailRa1nInfoRow(
+                title: "Jailbreak",
+                value: "Not Verified"
+            )
         }
-        .jailRa1nCard(cardColor, accent)
     }
 
     private var engineCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        JailRa1nCard(accent: accent) {
             Label(
                 "Jailbreak Engine",
                 systemImage: "cpu"
@@ -278,24 +295,21 @@ struct ContentView: View {
                 "Unavailable",
                 systemImage: "exclamationmark.circle.fill"
             )
-            .font(.subheadline.bold())
             .foregroundStyle(.orange)
 
             Text(
-                "No jailbreak engine is included in this preview."
+                "No jailbreak or bootstrap engine is included."
             )
             .font(.subheadline)
             .foregroundStyle(.gray)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .jailRa1nCard(cardColor, accent)
     }
 
     private var bootstrapButton: some View {
         Button {
             showBootstrap = true
         } label: {
-            HStack(spacing: 12) {
+            HStack {
                 Image(systemName: "shippingbox.fill")
 
                 Text("Bootstrap Manager")
@@ -315,45 +329,32 @@ struct ContentView: View {
         }
     }
 
-    private var checkButton: some View {
-        VStack(spacing: 12) {
+    private var deviceCheckButton: some View {
+        VStack(spacing: 10) {
             Button {
-                runDeviceCheck()
+                deviceChecked = true
             } label: {
-                HStack(spacing: 10) {
-                    if checking {
-                        ProgressView()
-                            .tint(accent)
-                    } else {
-                        Image(
-                            systemName: "checkmark.shield.fill"
-                        )
-                    }
-
-                    Text(
-                        checking
-                        ? "Checking Device..."
-                        : "Check Device"
-                    )
-                }
+                Label(
+                    "Check Device",
+                    systemImage: "checkmark.shield.fill"
+                )
                 .font(.headline)
                 .foregroundStyle(accent)
                 .frame(maxWidth: .infinity)
                 .padding(18)
                 .background(
-                    cardColor,
+                    Color.white.opacity(0.06),
                     in: RoundedRectangle(cornerRadius: 20)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 20)
-                        .stroke(accent.opacity(0.4))
+                        .stroke(accent.opacity(0.35))
                 )
             }
-            .disabled(checking)
 
-            if checkCompleted {
+            if deviceChecked {
                 Text(
-                    "Device information loaded. Jailbreak engine unavailable."
+                    "Device identified. No compatible bootstrap engine is configured."
                 )
                 .font(.caption)
                 .foregroundStyle(.orange)
@@ -362,59 +363,29 @@ struct ContentView: View {
         }
     }
 
-    private func runDeviceCheck() {
-        guard !checking else { return }
-
-        checking = true
-        checkCompleted = false
-
-        DispatchQueue.main.asyncAfter(
-            deadline: .now() + 1.5
-        ) {
-            checking = false
-            checkCompleted = true
-        }
-    }
-
     private var footer: some View {
         VStack(spacing: 6) {
-            Text("JailRa1n • Version 0.4")
+            Text("JailRa1n • Version 0.5")
                 .foregroundStyle(accent)
 
-            Text("Sileo Detection • No Exploit Included")
+            Text("Sileo Installer Preview • No Exploit")
                 .foregroundStyle(.gray)
         }
-        .font(.caption2)
+        .font(.caption)
     }
 
     private var settingsView: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    VStack(spacing: 10) {
-                        Image(systemName: "drop.fill")
-                            .font(.system(size: 75))
-                            .foregroundStyle(accent)
-                            .shadow(
-                                color: accent.opacity(0.7),
-                                radius: 20
-                            )
+                VStack(spacing: 20) {
+                    Image(systemName: "drop.fill")
+                        .font(.system(size: 75))
+                        .foregroundStyle(accent)
+                        .padding(.top, 20)
 
-                        Text("Customize JailRa1n")
-                            .font(.title2.bold())
-                            .foregroundStyle(.white)
-
-                        Text("Choose your neon style")
-                            .font(.subheadline)
-                            .foregroundStyle(.gray)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 20)
-
-                    Text("COLOR THEMES")
-                        .font(.caption.bold())
-                        .tracking(2)
-                        .foregroundStyle(.gray)
+                    Text("Customize JailRa1n")
+                        .font(.title2.bold())
+                        .foregroundStyle(.white)
 
                     LazyVGrid(
                         columns: [
@@ -423,15 +394,38 @@ struct ContentView: View {
                         ],
                         spacing: 12
                     ) {
-                        ForEach(JailRa1nTheme.allCases) { item in
-                            themeButton(item)
+                        ForEach(JailRa1nTheme.allCases) { theme in
+                            Button {
+                                selectedTheme = theme.rawValue
+                            } label: {
+                                VStack(spacing: 10) {
+                                    Circle()
+                                        .fill(theme.color)
+                                        .frame(width: 42, height: 42)
+
+                                    Text(theme.name)
+                                        .font(.caption.bold())
+                                        .foregroundStyle(.white)
+
+                                    Image(
+                                        systemName:
+                                            selectedTheme == theme.rawValue
+                                            ? "checkmark.circle.fill"
+                                            : "circle"
+                                    )
+                                    .foregroundStyle(theme.color)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(18)
+                                .background(
+                                    Color.white.opacity(0.07),
+                                    in: RoundedRectangle(
+                                        cornerRadius: 18
+                                    )
+                                )
+                            }
                         }
                     }
-
-                    Text("ANIMATIONS")
-                        .font(.caption.bold())
-                        .tracking(2)
-                        .foregroundStyle(.gray)
 
                     Toggle(
                         "Neon Animations",
@@ -439,33 +433,9 @@ struct ContentView: View {
                     )
                     .tint(accent)
                     .foregroundStyle(.white)
-                    .padding(18)
+                    .padding()
                     .background(
-                        cardColor,
-                        in: RoundedRectangle(cornerRadius: 18)
-                    )
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("ABOUT")
-                            .font(.caption.bold())
-                            .foregroundStyle(.gray)
-
-                        Text("JailRa1n 0.4")
-                            .foregroundStyle(.white)
-
-                        Text(
-                            "Sileo detection preview. No jailbreak or bootstrap installation engine is included."
-                        )
-                        .font(.footnote)
-                        .foregroundStyle(.gray)
-                    }
-                    .frame(
-                        maxWidth: .infinity,
-                        alignment: .leading
-                    )
-                    .padding(18)
-                    .background(
-                        cardColor,
+                        Color.white.opacity(0.07),
                         in: RoundedRectangle(cornerRadius: 18)
                     )
                 }
@@ -475,9 +445,7 @@ struct ContentView: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(
-                    placement: .navigationBarTrailing
-                ) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") {
                         showSettings = false
                     }
@@ -487,87 +455,21 @@ struct ContentView: View {
         }
         .preferredColorScheme(.dark)
     }
-
-    private func themeButton(
-        _ item: JailRa1nTheme
-    ) -> some View {
-        let isSelected = selectedTheme == item.rawValue
-
-        return Button {
-            withAnimation(.easeInOut(duration: 0.25)) {
-                selectedTheme = item.rawValue
-            }
-        } label: {
-            VStack(spacing: 12) {
-                Circle()
-                    .fill(item.color)
-                    .frame(width: 42, height: 42)
-                    .shadow(
-                        color: item.color.opacity(0.5),
-                        radius: isSelected ? 14 : 0
-                    )
-
-                Text(item.name)
-                    .font(.caption.bold())
-                    .foregroundStyle(.white)
-
-                Image(
-                    systemName: isSelected
-                    ? "checkmark.circle.fill"
-                    : "circle"
-                )
-                .foregroundStyle(
-                    isSelected ? item.color : .gray
-                )
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 18)
-            .background(
-                cardColor,
-                in: RoundedRectangle(cornerRadius: 20)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(
-                        isSelected
-                        ? item.color
-                        : Color.white.opacity(0.08),
-                        lineWidth: isSelected ? 2 : 1
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func infoRow(
-        _ title: String,
-        _ value: String
-    ) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Text(title)
-                .foregroundStyle(.gray)
-
-            Spacer(minLength: 0)
-
-            Text(value)
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.trailing)
-        }
-        .font(.subheadline)
-    }
 }
 
 // MARK: - Bootstrap Manager
 
 struct BootstrapView: View {
-
     @AppStorage("selectedTheme")
     private var selectedTheme = "green"
 
-    @State private var hasChecked = false
+    @State private var sileoChecked = false
+    @State private var sileoDetected = false
+    @State private var compatibilityChecked = false
+    @State private var installerChecked = false
 
     @State private var logs: [String] = [
-        "[INFO] Bootstrap Manager initialized",
+        "[INFO] JailRa1n 0.5 initialized",
         "[INFO] App sandbox available",
         "[WARN] No bootstrap engine configured"
     ]
@@ -576,20 +478,14 @@ struct BootstrapView: View {
         JailRa1nTheme(rawValue: selectedTheme)?.color ?? .green
     }
 
-    private let cardColor = Color(
-        red: 0.065,
-        green: 0.085,
-        blue: 0.075
-    )
-
     var body: some View {
         ScrollView {
-            VStack(spacing: 20) {
+            VStack(spacing: 22) {
                 Image(systemName: "shippingbox.fill")
-                    .font(.system(size: 72))
+                    .font(.system(size: 75))
                     .foregroundStyle(accent)
                     .shadow(
-                        color: accent.opacity(0.6),
+                        color: accent.opacity(0.7),
                         radius: 20
                     )
                     .padding(.top, 20)
@@ -598,14 +494,14 @@ struct BootstrapView: View {
                     .font(.title.bold())
                     .foregroundStyle(accent)
 
-                Text("JailRa1n 0.4 • Sileo Detection")
+                Text("JailRa1n 0.5 • Sileo Installer")
                     .font(.caption)
                     .foregroundStyle(.gray)
 
-                bootstrapStatus
+                statusCard
                 compatibilityCard
-                sileoCard
-                SileoDetectionView()
+                sileoDetectionCard
+                installerCard
                 logsCard
             }
             .padding(20)
@@ -616,8 +512,8 @@ struct BootstrapView: View {
         .preferredColorScheme(.dark)
     }
 
-    private var bootstrapStatus: some View {
-        VStack(alignment: .leading, spacing: 15) {
+    private var statusCard: some View {
+        JailRa1nCard(accent: accent) {
             Label(
                 "Bootstrap Status",
                 systemImage: "cube.box.fill"
@@ -627,16 +523,30 @@ struct BootstrapView: View {
 
             Divider()
 
-            infoRow("Bootstrap", "Not Installed")
-            infoRow("Engine", "Unavailable")
-            infoRow("Environment", "App Sandbox")
-            infoRow("System Access", "Not Available")
+            JailRa1nInfoRow(
+                title: "Bootstrap",
+                value: "Not Installed"
+            )
+
+            JailRa1nInfoRow(
+                title: "Engine",
+                value: "Unavailable"
+            )
+
+            JailRa1nInfoRow(
+                title: "Environment",
+                value: "App Sandbox"
+            )
+
+            JailRa1nInfoRow(
+                title: "System Access",
+                value: "Not Available"
+            )
         }
-        .jailRa1nCard(cardColor, accent)
     }
 
     private var compatibilityCard: some View {
-        VStack(alignment: .leading, spacing: 15) {
+        JailRa1nCard(accent: accent) {
             Label(
                 "Compatibility Check",
                 systemImage: "checkmark.shield.fill"
@@ -646,20 +556,36 @@ struct BootstrapView: View {
 
             Divider()
 
-            infoRow("Device", JailRa1nDevice.identifier)
-            infoRow("iOS Version", JailRa1nDevice.iosVersion)
+            JailRa1nInfoRow(
+                title: "Device",
+                value: JailRa1nDevice.identifier
+            )
 
-            if hasChecked {
-                Label(
-                    "No compatible bootstrap engine is configured.",
-                    systemImage: "exclamationmark.triangle.fill"
+            JailRa1nInfoRow(
+                title: "iOS Version",
+                value: JailRa1nDevice.iosVersion
+            )
+
+            if compatibilityChecked {
+                Text(
+                    "No supported bootstrap engine is configured."
                 )
                 .font(.caption)
                 .foregroundStyle(.orange)
             }
 
             Button {
-                checkCompatibility()
+                compatibilityChecked = true
+
+                logs.append(
+                    "[INFO] Device: \(JailRa1nDevice.identifier)"
+                )
+                logs.append(
+                    "[INFO] iOS: \(JailRa1nDevice.iosVersion)"
+                )
+                logs.append(
+                    "[WARN] No supported bootstrap engine"
+                )
             } label: {
                 Label(
                     "Check Compatibility",
@@ -675,136 +601,10 @@ struct BootstrapView: View {
                 )
             }
         }
-        .jailRa1nCard(cardColor, accent)
     }
 
-    private var sileoCard: some View {
-        VStack(alignment: .leading, spacing: 15) {
-            Label(
-                "Sileo Package Manager",
-                systemImage: "shippingbox"
-            )
-            .font(.headline)
-            .foregroundStyle(accent)
-
-            Divider()
-
-            infoRow("Installer", "Unavailable")
-
-            Text(
-                "Sileo installation requires a compatible bootstrap and system permissions."
-            )
-            .font(.footnote)
-            .foregroundStyle(.gray)
-
-            Label(
-                "Install Sileo",
-                systemImage: "lock.fill"
-            )
-            .font(.headline)
-            .foregroundStyle(.gray)
-            .frame(maxWidth: .infinity)
-            .padding(15)
-            .background(
-                Color.white.opacity(0.08),
-                in: RoundedRectangle(cornerRadius: 15)
-            )
-
-            Text("Installation is disabled in this preview.")
-                .font(.caption)
-                .foregroundStyle(.orange)
-        }
-        .jailRa1nCard(cardColor, accent)
-    }
-
-    private var logsCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Label(
-                "Bootstrap Logs",
-                systemImage: "terminal"
-            )
-            .font(.headline)
-            .foregroundStyle(accent)
-
-            Divider()
-
-            ForEach(logs.indices, id: \.self) { index in
-                Text(logs[index])
-                    .font(.system(
-                        size: 12,
-                        design: .monospaced
-                    ))
-                    .foregroundStyle(
-                        logs[index].contains("[WARN]")
-                        ? Color.orange
-                        : accent
-                    )
-                    .frame(
-                        maxWidth: .infinity,
-                        alignment: .leading
-                    )
-            }
-
-            Button("Clear Logs") {
-                logs.removeAll()
-            }
-            .font(.caption.bold())
-            .foregroundStyle(accent)
-        }
-        .jailRa1nCard(cardColor, accent)
-    }
-
-    private func checkCompatibility() {
-        hasChecked = true
-
-        logs.append(
-            "[INFO] Device: \(JailRa1nDevice.identifier)"
-        )
-
-        logs.append(
-            "[INFO] iOS: \(JailRa1nDevice.iosVersion)"
-        )
-
-        logs.append(
-            "[WARN] No bootstrap engine configured"
-        )
-    }
-
-    private func infoRow(
-        _ title: String,
-        _ value: String
-    ) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Text(title)
-                .foregroundStyle(.gray)
-
-            Spacer(minLength: 8)
-
-            Text(value)
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.trailing)
-        }
-        .font(.subheadline)
-    }
-}
-
-// MARK: - Sileo Detection
-
-struct SileoDetectionView: View {
-
-    @AppStorage("selectedTheme")
-    private var selectedTheme = "green"
-
-    @State private var sileoDetected = false
-    @State private var hasChecked = false
-
-    private var accent: Color {
-        JailRa1nTheme(rawValue: selectedTheme)?.color ?? .green
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-
+    private var sileoDetectionCard: some View {
+        JailRa1nCard(accent: accent) {
             Label(
                 "Sileo Detection",
                 systemImage: "magnifyingglass"
@@ -814,21 +614,12 @@ struct SileoDetectionView: View {
 
             Divider()
 
-            HStack {
-                Text("Sileo Status")
-                    .foregroundStyle(.gray)
-
-                Spacer()
-
-                Text(
-                    hasChecked
+            JailRa1nInfoRow(
+                title: "Sileo Status",
+                value: sileoChecked
                     ? (sileoDetected ? "Detected" : "Not Detected")
                     : "Not Checked"
-                )
-                .foregroundStyle(
-                    sileoDetected ? .green : .orange
-                )
-            }
+            )
 
             Button {
                 detectSileo()
@@ -849,91 +640,162 @@ struct SileoDetectionView: View {
 
             if sileoDetected {
                 Button {
-                    guard let url = URL(
-                        string: "sileo://"
-                    ) else {
-                        return
+                    if let url = URL(string: "sileo://") {
+                        UIApplication.shared.open(url)
                     }
-
-                    UIApplication.shared.open(url)
                 } label: {
                     Label(
                         "Open Sileo",
                         systemImage: "arrow.up.right.square"
                     )
-                    .frame(maxWidth: .infinity)
-                    .padding(15)
+                    .foregroundStyle(accent)
                 }
-                .foregroundStyle(accent)
             }
 
             Text(
-                "Checks whether the Sileo URL scheme is available. Does not verify jailbreak access."
+                "Checks whether iOS can open the Sileo URL scheme."
             )
             .font(.caption)
             .foregroundStyle(.gray)
         }
-        .padding(20)
-        .background(
-            Color(
-                red: 0.065,
-                green: 0.085,
-                blue: 0.075
-            ),
-            in: RoundedRectangle(cornerRadius: 24)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(accent.opacity(0.16))
-        )
+    }
+
+    private var installerCard: some View {
+        JailRa1nCard(accent: accent) {
+            Label(
+                "Sileo Installer Manager",
+                systemImage: "square.and.arrow.down.fill"
+            )
+            .font(.headline)
+            .foregroundStyle(accent)
+
+            Divider()
+
+            JailRa1nInfoRow(
+                title: "Installer Status",
+                value: "Unavailable"
+            )
+
+            JailRa1nInfoRow(
+                title: "Bootstrap Engine",
+                value: "Not Configured"
+            )
+
+            JailRa1nInfoRow(
+                title: "System Permissions",
+                value: "Unavailable"
+            )
+
+            if installerChecked {
+                Label(
+                    "Installation blocked: no compatible bootstrap engine.",
+                    systemImage: "exclamationmark.triangle.fill"
+                )
+                .font(.caption)
+                .foregroundStyle(.orange)
+            }
+
+            Button {
+                runInstallerCheck()
+            } label: {
+                Label(
+                    "Check Installation Requirements",
+                    systemImage: "shield.lefthalf.filled"
+                )
+                .font(.headline)
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .padding(15)
+                .background(
+                    accent,
+                    in: RoundedRectangle(cornerRadius: 15)
+                )
+            }
+
+            Label(
+                "Install Sileo",
+                systemImage: "lock.fill"
+            )
+            .font(.headline)
+            .foregroundStyle(.gray)
+            .frame(maxWidth: .infinity)
+            .padding(15)
+            .background(
+                Color.white.opacity(0.08),
+                in: RoundedRectangle(cornerRadius: 15)
+            )
+
+            Text(
+                "Installation remains disabled until a compatible bootstrap is available."
+            )
+            .font(.caption)
+            .foregroundStyle(.gray)
+        }
+    }
+
+    private var logsCard: some View {
+        JailRa1nCard(accent: accent) {
+            Label(
+                "Installation Logs",
+                systemImage: "terminal"
+            )
+            .font(.headline)
+            .foregroundStyle(accent)
+
+            Divider()
+
+            ForEach(logs.indices, id: \.self) { index in
+                Text(logs[index])
+                    .font(.system(
+                        size: 11,
+                        design: .monospaced
+                    ))
+                    .foregroundStyle(
+                        logs[index].contains("[WARN]")
+                        ? Color.orange
+                        : accent
+                    )
+            }
+
+            Button("Clear Logs") {
+                logs.removeAll()
+            }
+            .foregroundStyle(accent)
+        }
     }
 
     private func detectSileo() {
-        guard let url = URL(
-            string: "sileo://"
-        ) else {
+        guard let url = URL(string: "sileo://") else {
             return
         }
 
-        hasChecked = true
+        sileoChecked = true
         sileoDetected = UIApplication.shared.canOpenURL(url)
+
+        logs.append(
+            sileoDetected
+            ? "[INFO] Sileo URL scheme detected"
+            : "[WARN] Sileo URL scheme not detected"
+        )
     }
-}
 
-// MARK: - Shared Card Style
+    private func runInstallerCheck() {
+        installerChecked = true
 
-private struct JailRa1nCardModifier: ViewModifier {
-    let backgroundColor: Color
-    let accentColor: Color
-
-    func body(content: Content) -> some View {
-        content
-            .frame(
-                maxWidth: .infinity,
-                alignment: .leading
-            )
-            .padding(20)
-            .background(
-                backgroundColor,
-                in: RoundedRectangle(cornerRadius: 24)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 24)
-                    .stroke(accentColor.opacity(0.16))
-            )
-    }
-}
-
-private extension View {
-    func jailRa1nCard(
-        _ background: Color,
-        _ accent: Color
-    ) -> some View {
-        modifier(
-            JailRa1nCardModifier(
-                backgroundColor: background,
-                accentColor: accent
-            )
+        logs.append(
+            "[INFO] Checking Sileo installation requirements"
+        )
+        logs.append(
+            "[INFO] Device: \(JailRa1nDevice.identifier)"
+        )
+        logs.append(
+            "[INFO] iOS: \(JailRa1nDevice.iosVersion)"
+        )
+        logs.append(
+            "[WARN] Bootstrap engine unavailable"
+        )
+        logs.append(
+            "[WARN] Installation safely blocked"
         )
     }
 }
