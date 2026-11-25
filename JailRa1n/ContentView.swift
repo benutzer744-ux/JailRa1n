@@ -1,158 +1,561 @@
+
 import SwiftUI
 import UIKit
-import Darwin
 
-private enum Theme {
-    static let green = Color(red: 0.47, green: 1.0, blue: 0.02)
-    static let panel = Color(red: 0.07, green: 0.11, blue: 0.08)
-}
+// MARK: - Themes
 
-struct ContentView: View {
-    @State private var showingSettings = false
-    @AppStorage("glowEnabled") private var glowEnabled = true
+enum JailRa1nTheme: String, CaseIterable, Identifiable {
+    case green, blue, purple, pink, red, white
 
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    Image(systemName: "drop.fill")
-                        .font(.system(size: 76, weight: .medium))
-                        .foregroundStyle(Theme.green)
-                        .shadow(color: glowEnabled ? Theme.green.opacity(0.7) : .clear, radius: 22)
-                        .accessibilityHidden(true)
+    var id: String { rawValue }
 
-                    VStack(spacing: 6) {
-                        Text("JailRa1n")
-                            .font(.system(size: 36, weight: .bold, design: .rounded))
-                            .foregroundStyle(Theme.green)
-                        Text("Untethered Jailbreak • Concept")
-                            .font(.subheadline)
-                            .foregroundStyle(.gray)
-                    }
-
-                    VStack(alignment: .leading, spacing: 18) {
-                        Label("Device Information", systemImage: "iphone.gen3")
-                            .font(.headline)
-                            .foregroundStyle(Theme.green)
-                        Divider().overlay(Theme.green.opacity(0.2))
-                        detail("Device Name", UIDevice.current.name)
-                        detail("iPhone Model", DeviceInfo.modelName)
-                        detail("iOS Version", UIDevice.current.systemVersion)
-                        detail("Target iOS", "27.0.1")
-                        detail("Jailbreak", "Not Jailbroken")
-                    }
-                    .padding(20)
-                    .frame(maxWidth: .infinity)
-                    .background(Theme.panel, in: RoundedRectangle(cornerRadius: 20))
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("Jailbreak Engine").font(.headline)
-                            Spacer()
-                            Text("Unavailable")
-                                .font(.caption.bold())
-                                .foregroundStyle(.orange)
-                        }
-                        Text("No jailbreak engine is included in this preview.")
-                            .font(.footnote)
-                            .foregroundStyle(.gray)
-                    }
-                    .padding(20)
-                    .frame(maxWidth: .infinity)
-                    .background(Theme.panel, in: RoundedRectangle(cornerRadius: 20))
-
-                    Button("Jailbreak") { }
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(16)
-                        .background(Color.gray.opacity(0.23), in: RoundedRectangle(cornerRadius: 15))
-                        .foregroundStyle(.gray)
-                        .disabled(true)
-                        .accessibilityHint("Not available in this version")
-
-                    Text("Coming Soon • Interface Preview 0.1")
-                        .font(.caption)
-                        .foregroundStyle(.gray)
-                }
-                .padding(22)
-            }
-            .background(Color.black.ignoresSafeArea())
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showingSettings = true } label: {
-                        Image(systemName: "gearshape.fill")
-                            .foregroundStyle(Theme.green)
-                    }
-                    .accessibilityLabel("Settings")
-                }
-            }
-            .sheet(isPresented: $showingSettings) {
-                SettingsView()
-            }
+    var name: String {
+        switch self {
+        case .green: return "Neon Green"
+        case .blue: return "Electric Blue"
+        case .purple: return "Neon Purple"
+        case .pink: return "Hot Pink"
+        case .red: return "Fire Red"
+        case .white: return "Arctic White"
         }
-        .tint(Theme.green)
     }
 
-    private func detail(_ title: String, _ value: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text(title).foregroundStyle(.gray)
-            Spacer(minLength: 8)
+    var color: Color {
+        switch self {
+        case .green: return Color(red: 0.49, green: 1, blue: 0)
+        case .blue: return Color(red: 0, green: 0.75, blue: 1)
+        case .purple: return Color(red: 0.70, green: 0.30, blue: 1)
+        case .pink: return Color(red: 1, green: 0.24, blue: 0.60)
+        case .red: return Color(red: 1, green: 0.27, blue: 0.27)
+        case .white: return Color(red: 0.94, green: 0.96, blue: 0.98)
+        }
+    }
+}
+
+// MARK: - Main View
+
+struct ContentView: View {
+
+    @AppStorage("selectedTheme")
+    private var selectedTheme = "green"
+
+    @AppStorage("animationsEnabled")
+    private var animationsEnabled = true
+
+    @State private var pulsing = false
+    @State private var showSettings = false
+    @State private var checking = false
+    @State private var checkCompleted = false
+
+    private var theme: JailRa1nTheme {
+        JailRa1nTheme(rawValue: selectedTheme) ?? .green
+    }
+
+    private var accent: Color {
+        theme.color
+    }
+
+    private let background = Color.black
+    private let cardBackground = Color(
+        red: 0.065,
+        green: 0.085,
+        blue: 0.075
+    )
+
+    var body: some View {
+        ZStack {
+            background.ignoresSafeArea()
+
+            ScrollView {
+                VStack(spacing: 24) {
+                    header
+                    logo
+                    titleSection
+                    deviceCard
+                    engineCard
+                    checkButton
+                    footer
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 14)
+                .padding(.bottom, 30)
+            }
+        }
+        .preferredColorScheme(.dark)
+        .sheet(isPresented: $showSettings) {
+            settingsView
+        }
+        .onAppear {
+            pulsing = true
+        }
+    }
+
+    // MARK: - Header
+
+    private var header: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("JailRa1n")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+
+                Text("Version 0.2")
+                    .font(.caption)
+                    .foregroundStyle(.gray)
+            }
+
+            Spacer()
+
+            Button {
+                showSettings = true
+            } label: {
+                Image(systemName: "gearshape.fill")
+                    .font(.title2)
+                    .foregroundStyle(accent)
+                    .frame(width: 46, height: 46)
+                    .background(
+                        Color.white.opacity(0.08),
+                        in: Circle()
+                    )
+            }
+            .accessibilityLabel("Settings")
+        }
+    }
+
+    // MARK: - Animated Logo
+
+    private var logo: some View {
+        ZStack {
+            Circle()
+                .fill(accent.opacity(0.16))
+                .frame(width: 180, height: 180)
+                .blur(radius: 35)
+
+            Circle()
+                .stroke(accent.opacity(0.25), lineWidth: 2)
+                .frame(width: 175, height: 175)
+
+            Image(systemName: "drop.fill")
+                .font(.system(size: 140))
+                .foregroundStyle(accent)
+                .shadow(
+                    color: accent.opacity(0.8),
+                    radius: 25
+                )
+        }
+        .frame(height: 210)
+        .scaleEffect(
+            animationsEnabled && pulsing ? 1.06 : 0.94
+        )
+        .animation(
+            animationsEnabled
+                ? .easeInOut(duration: 1.8)
+                    .repeatForever(autoreverses: true)
+                : .none,
+            value: pulsing
+        )
+        .onChange(of: animationsEnabled) { enabled in
+            pulsing = false
+
+            if enabled {
+                DispatchQueue.main.asyncAfter(
+                    deadline: .now() + 0.05
+                ) {
+                    pulsing = true
+                }
+            }
+        }
+    }
+
+    // MARK: - Title
+
+    private var titleSection: some View {
+        VStack(spacing: 8) {
+            Text("JailRa1n")
+                .font(.system(
+                    size: 42,
+                    weight: .bold,
+                    design: .rounded
+                ))
+                .foregroundStyle(accent)
+
+            Text("Custom Themes Edition")
+                .font(.subheadline)
+                .foregroundStyle(.gray)
+
+            HStack(spacing: 7) {
+                Circle()
+                    .fill(accent)
+                    .frame(width: 7, height: 7)
+
+                Text("INTERFACE PREVIEW 0.2")
+                    .font(.system(
+                        size: 10,
+                        weight: .semibold,
+                        design: .monospaced
+                    ))
+                    .tracking(2)
+                    .foregroundStyle(accent)
+            }
+            .padding(.top, 5)
+        }
+    }
+
+    // MARK: - Device Information
+
+    private var deviceCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Label(
+                "Device Information",
+                systemImage: "iphone"
+            )
+            .font(.headline)
+            .foregroundStyle(accent)
+
+            Divider()
+                .overlay(accent.opacity(0.2))
+
+            infoRow(
+                "Device Name",
+                UIDevice.current.name
+            )
+
+            infoRow(
+                "iPhone Model",
+                deviceIdentifier
+            )
+
+            infoRow(
+                "iOS Version",
+                UIDevice.current.systemVersion
+            )
+
+            infoRow(
+                "Target iOS",
+                UIDevice.current.systemVersion
+            )
+
+            infoRow(
+                "Jailbreak",
+                "Not Checked"
+            )
+        }
+        .padding(20)
+        .background(
+            cardBackground,
+            in: RoundedRectangle(cornerRadius: 24)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(accent.opacity(0.16))
+        )
+    }
+
+    private func infoRow(
+        _ label: String,
+        _ value: String
+    ) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(label)
+                .foregroundStyle(.gray)
+
+            Spacer(minLength: 0)
+
             Text(value)
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.trailing)
-                .textSelection(.enabled)
         }
         .font(.subheadline)
     }
-}
 
-private struct SettingsView: View {
-    @Environment(\.dismiss) private var dismiss
-    @AppStorage("glowEnabled") private var glowEnabled = true
+    private var deviceIdentifier: String {
+        var systemInfo = utsname()
+        uname(&systemInfo)
 
-    var body: some View {
+        let bytes = Mirror(
+            reflecting: systemInfo.machine
+        ).children.compactMap { $0.value as? Int8 }
+
+        let identifier = bytes
+            .prefix(while: { $0 != 0 })
+            .map { UInt8(bitPattern: $0) }
+
+        return String(
+            bytes: identifier,
+            encoding: .utf8
+        ) ?? UIDevice.current.model
+    }
+
+    // MARK: - Jailbreak Engine
+
+    private var engineCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Label(
+                    "Jailbreak Engine",
+                    systemImage: "cpu"
+                )
+                .font(.headline)
+                .foregroundStyle(accent)
+
+                Spacer()
+            }
+
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .foregroundStyle(.orange)
+
+                Text("Unavailable")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.orange)
+            }
+
+            Text(
+                "No jailbreak engine is included in this preview."
+            )
+            .font(.subheadline)
+            .foregroundStyle(.gray)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .background(
+            cardBackground,
+            in: RoundedRectangle(cornerRadius: 24)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(accent.opacity(0.16))
+        )
+    }
+
+    // MARK: - Device Check
+
+    private var checkButton: some View {
+        VStack(spacing: 12) {
+            Button {
+                runDeviceCheck()
+            } label: {
+                HStack(spacing: 10) {
+                    if checking {
+                        ProgressView()
+                            .tint(.black)
+                    } else {
+                        Image(systemName: "checkmark.shield.fill")
+                    }
+
+                    Text(
+                        checking
+                        ? "Checking Device..."
+                        : "Check Device"
+                    )
+                }
+                .font(.headline)
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .padding(18)
+                .background(
+                    accent,
+                    in: RoundedRectangle(cornerRadius: 20)
+                )
+            }
+            .disabled(checking)
+
+            if checkCompleted {
+                Text(
+                    "Device information loaded. Jailbreak engine unavailable."
+                )
+                .font(.caption)
+                .foregroundStyle(.orange)
+                .multilineTextAlignment(.center)
+            }
+        }
+    }
+
+    private func runDeviceCheck() {
+        guard !checking else { return }
+
+        checking = true
+        checkCompleted = false
+
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + 1.5
+        ) {
+            checking = false
+            checkCompleted = true
+        }
+    }
+
+    // MARK: - Footer
+
+    private var footer: some View {
+        VStack(spacing: 6) {
+            Text("JailRa1n • Version 0.2")
+                .foregroundStyle(accent)
+
+            Text("Interface Concept • No Jailbreak Engine")
+                .foregroundStyle(.gray)
+        }
+        .font(.caption2)
+    }
+
+    // MARK: - Settings
+
+    private var settingsView: some View {
         NavigationStack {
-            Form {
-                Section("Appearance") {
-                    Toggle("Neon glow", isOn: $glowEnabled)
-                }
-                Section("About") {
-                    LabeledContent("App", value: "JailRa1n")
-                    LabeledContent("Version", value: "0.1")
-                    LabeledContent("Target", value: "iOS 27.0.1")
-                    LabeledContent("Engine", value: "Not implemented")
-                }
-                Section {
-                    Text("This is a UI prototype. It does not jailbreak or modify your iPhone.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+            ZStack {
+                background.ignoresSafeArea()
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+
+                        VStack(spacing: 10) {
+                            Image(systemName: "drop.fill")
+                                .font(.system(size: 75))
+                                .foregroundStyle(accent)
+                                .shadow(
+                                    color: accent.opacity(0.7),
+                                    radius: 20
+                                )
+
+                            Text("Customize JailRa1n")
+                                .font(.title2.bold())
+                                .foregroundStyle(.white)
+
+                            Text("Choose your neon style")
+                                .font(.subheadline)
+                                .foregroundStyle(.gray)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 20)
+
+                        Text("COLOR THEMES")
+                            .font(.caption.bold())
+                            .tracking(2)
+                            .foregroundStyle(.gray)
+
+                        LazyVGrid(
+                            columns: [
+                                GridItem(.flexible()),
+                                GridItem(.flexible())
+                            ],
+                            spacing: 12
+                        ) {
+                            ForEach(JailRa1nTheme.allCases) { item in
+                                themeButton(item)
+                            }
+                        }
+
+                        Text("ANIMATIONS")
+                            .font(.caption.bold())
+                            .tracking(2)
+                            .foregroundStyle(.gray)
+
+                        Toggle(
+                            isOn: $animationsEnabled
+                        ) {
+                            Label(
+                                "Neon Animations",
+                                systemImage: "sparkles"
+                            )
+                            .foregroundStyle(.white)
+                        }
+                        .tint(accent)
+                        .padding(18)
+                        .background(
+                            cardBackground,
+                            in: RoundedRectangle(cornerRadius: 18)
+                        )
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("ABOUT")
+                                .font(.caption.bold())
+                                .tracking(2)
+                                .foregroundStyle(.gray)
+
+                            Text("JailRa1n 0.2")
+                                .foregroundStyle(.white)
+
+                            Text(
+                                "Interface preview only. No jailbreak functionality is included."
+                            )
+                            .font(.footnote)
+                            .foregroundStyle(.gray)
+                        }
+                        .frame(
+                            maxWidth: .infinity,
+                            alignment: .leading
+                        )
+                        .padding(18)
+                        .background(
+                            cardBackground,
+                            in: RoundedRectangle(cornerRadius: 18)
+                        )
+                    }
+                    .padding(20)
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(Color.black)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        showSettings = false
+                    }
+                    .foregroundStyle(accent)
                 }
             }
         }
-        .tint(Theme.green)
         .preferredColorScheme(.dark)
     }
-}
 
-private enum DeviceInfo {
-    static var modelName: String {
-        var info = utsname()
-        uname(&info)
-        let identifier = withUnsafePointer(to: &info.machine) {
-            $0.withMemoryRebound(to: CChar.self, capacity: 256) {
-                String(cString: $0)
+    private func themeButton(
+        _ item: JailRa1nTheme
+    ) -> some View {
+        let isSelected = selectedTheme == item.rawValue
+
+        return Button {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                selectedTheme = item.rawValue
             }
+        } label: {
+            VStack(spacing: 12) {
+                Circle()
+                    .fill(item.color)
+                    .frame(width: 42, height: 42)
+                    .shadow(
+                        color: item.color.opacity(0.5),
+                        radius: isSelected ? 14 : 0
+                    )
+
+                Text(item.name)
+                    .font(.caption.bold())
+                    .foregroundStyle(.white)
+
+                Image(
+                    systemName: isSelected
+                    ? "checkmark.circle.fill"
+                    : "circle"
+                )
+                .foregroundStyle(
+                    isSelected ? item.color : .gray
+                )
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 18)
+            .background(
+                cardBackground,
+                in: RoundedRectangle(cornerRadius: 20)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(
+                        isSelected
+                        ? item.color
+                        : Color.white.opacity(0.08),
+                        lineWidth: isSelected ? 2 : 1
+                    )
+            )
         }
-        // Model identifiers remain accurate even when a new iPhone is not yet in the lookup.
-        return identifier == "x86_64" || identifier == "arm64" ? "iPhone Simulator" : identifier
+        .buttonStyle(.plain)
     }
 }
