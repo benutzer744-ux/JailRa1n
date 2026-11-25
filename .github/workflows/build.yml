@@ -38,12 +38,34 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build
 
+      - name: Configure Sileo Detection
+        run: |
+          APP_PATH="$RUNNER_TEMP/JailRa1nBuild/Build/Products/Release-iphoneos/JailRa1n.app"
+          PLIST="$APP_PATH/Info.plist"
+
+          test -f "$PLIST"
+
+          /usr/libexec/PlistBuddy \
+            -c "Delete :LSApplicationQueriesSchemes" \
+            "$PLIST" || true
+
+          /usr/libexec/PlistBuddy \
+            -c "Add :LSApplicationQueriesSchemes array" \
+            "$PLIST"
+
+          /usr/libexec/PlistBuddy \
+            -c "Add :LSApplicationQueriesSchemes:0 string sileo" \
+            "$PLIST"
+
+          /usr/libexec/PlistBuddy \
+            -c "Print :LSApplicationQueriesSchemes" \
+            "$PLIST"
+
       - name: Prepare app artifact
         run: |
           APP_PATH="$RUNNER_TEMP/JailRa1nBuild/Build/Products/Release-iphoneos/JailRa1n.app"
 
           test -d "$APP_PATH"
-
           mkdir -p output
           cp -R "$APP_PATH" output/
 
