@@ -721,94 +721,99 @@ struct UltimateDripView: View {
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
             let elapsed = timeline.date.timeIntervalSince(startDate)
-            ZStack {
-                Color.black.ignoresSafeArea()
-                RadialGradient(colors: [accent.opacity(0.16), .black], center: .center,
-                               startRadius: 10, endRadius: 310).ignoresSafeArea()
+            GeometryReader { geometry in
+                let width = min(geometry.size.width - 32, 370.0)
                 VStack(spacing: 0) {
+                    Spacer(minLength: 12)
                     ZStack {
                         LiquidDrop()
-                            .fill(LinearGradient(colors: [.white.opacity(0.85), accent, accent.opacity(0.5)],
+                            .fill(LinearGradient(colors: [.white.opacity(0.85), accent, accent.opacity(0.55)],
                                                  startPoint: .topLeading, endPoint: .bottomTrailing))
                             .frame(width: 168, height: 194)
-                            .shadow(color: accent, radius: 22)
+                            .shadow(color: accent, radius: 23)
                             .scaleEffect(1 + 0.025 * sin(elapsed * 3))
-                            .offset(y: -30)
-                        // Each attached strand grows and retracts; detached drops fall independently.
+                            .offset(y: -26)
                         ForEach(0..<7, id: \.self) { index in
-                            let phase = (elapsed * 0.65 + Double(index) * 0.21).truncatingRemainder(dividingBy: 1)
-                            let growth = min(phase / 0.42, 1)
-                            let attached = phase < 0.55
-                            let x = CGFloat(index - 3) * 19
-                            if attached {
-                                Capsule()
-                                    .fill(accent)
-                                    .frame(width: CGFloat(5 + index % 3), height: 12 + 49 * growth)
-                                    .shadow(color: accent, radius: 7)
-                                    .offset(x: x, y: 57 + 25 * growth)
-                            } else {
-                                let fall = (phase - 0.55) / 0.45
-                                Ellipse()
-                                    .fill(accent)
-                                    .frame(width: 8, height: 16)
-                                    .shadow(color: accent, radius: 8)
-                                    .offset(x: x, y: 93 + 180 * fall * fall)
-                            }
+                            LiquidDripParticle(
+                                phase: (elapsed * 0.52 + Double(index) * 0.17).truncatingRemainder(dividingBy: 1),
+                                accent: accent, strandLength: 38, fallDistance: 115,
+                                width: CGFloat(5 + index % 3)
+                            )
+                            .offset(x: CGFloat(index - 3) * 19, y: 66)
                         }
                     }
-                    .frame(height: 260)
+                    .frame(height: 245)
 
-                    Text("JailRa1n")
-                        .font(.system(size: 43, weight: .black, design: .rounded))
-                        .minimumScaleFactor(0.7)
-                        .lineLimit(1)
-                        .foregroundColor(accent)
-                        .shadow(color: accent, radius: 14)
-                        .offset(x: elapsed.truncatingRemainder(dividingBy: 2.8) > 2.68 ? 3 : 0)
-
-                    // Separate falling drops below the lettering.
-                    ZStack {
-                        ForEach(0..<6, id: \.self) { index in
-                            let phase = (elapsed * 0.58 + Double(index) * 0.17).truncatingRemainder(dividingBy: 1)
-                            let growing = phase < 0.32
-                            let falling = max(0, (phase - 0.32) / 0.68)
-                            Capsule()
-                                .fill(accent)
-                                .frame(width: CGFloat(5 + index % 3), height: growing ? 7 + 24 * phase / 0.32 : 13)
-                                .shadow(color: accent, radius: 7)
-                                .offset(x: CGFloat(index - 3) * 34 + 15,
-                                        y: growing ? 7 : 24 + 115 * falling * falling)
+                    // Drips originate at the lower edge of the letters, not in a separate row.
+                    ZStack(alignment: .top) {
+                        Text("JailRa1n")
+                            .font(.system(size: 43, weight: .black, design: .rounded))
+                            .minimumScaleFactor(0.7)
+                            .lineLimit(1)
+                            .foregroundColor(accent)
+                            .shadow(color: accent, radius: 14)
+                            .offset(x: elapsed.truncatingRemainder(dividingBy: 2.8) > 2.68 ? 3 : 0)
+                        ForEach(0..<8, id: \.self) { index in
+                            LiquidDripParticle(
+                                phase: (elapsed * 0.43 + Double(index) * 0.137).truncatingRemainder(dividingBy: 1),
+                                accent: accent, strandLength: CGFloat(19 + index % 3 * 9),
+                                fallDistance: 125, width: CGFloat(4 + index % 3)
+                            )
+                            .offset(x: CGFloat(index - 3) * (width / 9.6), y: 38)
                         }
+                    }
+                    .frame(width: width, height: 53, alignment: .top)
+                    .zIndex(2)
+
+                    // Keep the splash and ripples within their own animation area.
+                    ZStack {
                         ForEach(0..<3, id: \.self) { index in
-                            let phase = (elapsed * 0.75 + Double(index) / 3).truncatingRemainder(dividingBy: 1)
+                            let phase = (elapsed * 0.68 + Double(index) / 3).truncatingRemainder(dividingBy: 1)
                             Ellipse()
                                 .stroke(accent.opacity(1 - phase), lineWidth: 2)
                                 .frame(width: 25 + 180 * phase, height: 7 + 28 * phase)
-                                .offset(y: 138)
+                                .offset(y: 49)
                         }
                         ForEach(0..<12, id: \.self) { index in
-                            let phase = (elapsed * 0.75 + Double(index % 3) / 3).truncatingRemainder(dividingBy: 1)
+                            let phase = (elapsed * 0.68 + Double(index % 3) / 3).truncatingRemainder(dividingBy: 1)
                             Circle()
                                 .fill(accent.opacity(1 - phase))
-                                .frame(width: 3 + CGFloat(index % 3), height: 3 + CGFloat(index % 3))
+                                .frame(width: CGFloat(3 + index % 3), height: CGFloat(3 + index % 3))
                                 .offset(x: CGFloat(index - 6) * 9 * phase,
-                                        y: 138 - CGFloat(32 + index % 4 * 9) * sin(phase * .pi))
+                                        y: 49 - CGFloat(32 + index % 4 * 9) * sin(phase * .pi))
                         }
                     }
-                    .frame(height: 160)
+                    .frame(height: 178)
 
                     Text("RESPRING • ANIMATION PREVIEW")
                         .font(.system(size: 10, weight: .semibold, design: .monospaced))
                         .tracking(1)
                         .foregroundColor(.gray)
-                        .padding(.top, 8)
-                    Button(JRLanguage.text("Close Preview", appLanguage)) { close() }
-                        .foregroundColor(accent)
-                        .padding(.top, 24)
+                        .padding(.top, 12)
+
+                    Spacer(minLength: 24)
+
+                    Button(action: close) {
+                        Text(JRLanguage.text("Close Preview", appLanguage))
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(accent)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 15)
+                            .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
+                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(accent.opacity(0.45)))
+                    }
+                    .padding(.horizontal, 26)
+                    .padding(.bottom, 24)
                 }
-                .padding(.horizontal, 20)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.black)
+                .background(
+                    RadialGradient(colors: [accent.opacity(0.14), .black], center: .center,
+                                   startRadius: 10, endRadius: 310)
+                )
             }
         }
+        .background(Color.black.ignoresSafeArea())
         .preferredColorScheme(.dark)
         .onAppear {
             startDate = Date()
@@ -821,5 +826,41 @@ struct UltimateDripView: View {
         guard !isClosing else { return }
         isClosing = true
         dismiss()
+    }
+}
+
+// The strand first stretches from its anchor, then a rounded drop detaches and falls.
+private struct LiquidDripParticle: View {
+    let phase: Double
+    let accent: Color
+    let strandLength: CGFloat
+    let fallDistance: CGFloat
+    let width: CGFloat
+
+    var body: some View {
+        let grow = min(1.0, phase / 0.34)
+        let attached = phase < 0.48
+        let falling = max(0.0, (phase - 0.48) / 0.52)
+        ZStack(alignment: .top) {
+            if attached {
+                Capsule()
+                    .fill(accent)
+                    .frame(width: width, height: 5 + strandLength * CGFloat(grow))
+                    .shadow(color: accent, radius: 7)
+                    .offset(y: 0)
+                Circle()
+                    .fill(accent)
+                    .frame(width: width + 3, height: width + 3)
+                    .shadow(color: accent, radius: 7)
+                    .offset(y: strandLength * CGFloat(grow))
+            } else {
+                Ellipse()
+                    .fill(accent)
+                    .frame(width: width + 3, height: width * 1.8 + 5)
+                    .shadow(color: accent, radius: 9)
+                    .offset(y: strandLength + fallDistance * CGFloat(falling * falling))
+            }
+        }
+        .frame(width: width + 6, height: 6, alignment: .top)
     }
 }
