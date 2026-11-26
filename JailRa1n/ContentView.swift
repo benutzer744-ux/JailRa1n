@@ -765,22 +765,61 @@ struct UltimateDripView: View {
                     .frame(width: width, height: 53, alignment: .top)
                     .zIndex(2)
 
-                    // Keep the splash and ripples within their own animation area.
+                    // Impact-driven splashes: each drop hits the liquid surface,
+                    // creates a crown of tiny droplets, then expanding ripples.
                     ZStack {
-                        ForEach(0..<3, id: \.self) { index in
-                            let phase = (elapsed * 0.68 + Double(index) / 3).truncatingRemainder(dividingBy: 1)
-                            Ellipse()
-                                .stroke(accent.opacity(1 - phase), lineWidth: 2)
-                                .frame(width: 25 + 180 * phase, height: 7 + 28 * phase)
-                                .offset(y: 49)
+                        Ellipse()
+                            .fill(accent.opacity(0.07))
+                            .frame(width: 220, height: 25)
+                            .offset(y: 53)
+                        ForEach(0..<3, id: \.self) { impact in
+                            // Each cycle has its own impact time.
+                            let cycle = (elapsed * 0.68 + Double(impact) / 3.0)
+                                .truncatingRemainder(dividingBy: 1.0)
+                            // Impact happens once the falling droplet reaches the pool.
+                            let splash = max(0.0, min(1.0, (cycle - 0.54) / 0.40))
+                            let active = cycle >= 0.54 && cycle < 0.94
+                            let hitX = CGFloat(impact - 1) * 38.0
+
+                            if active {
+                                // Liquid crown expands and fades after impact.
+                                Ellipse()
+                                    .stroke(accent.opacity((1 - splash) * 0.95), lineWidth: 2.5)
+                                    .frame(width: 16 + CGFloat(splash) * 125,
+                                           height: 5 + CGFloat(splash) * 23)
+                                    .shadow(color: accent, radius: 8)
+                                    .offset(x: hitX, y: 53)
+
+                                ForEach(0..<11, id: \.self) { particle in
+                                    let angle = Double(particle) * .pi / 10.0
+                                    let speed = CGFloat(25 + (particle % 4) * 12)
+                                    let t = CGFloat(splash)
+                                    // Ballistic motion: rise first, then fall.
+                                    let dx = cos(angle) * speed * t
+                                    let dy = -sin(angle) * speed * (2 * t - t * t)
+                                        + 27 * t * t
+                                    LiquidSplashSpeck(accent: accent,
+                                                      size: CGFloat(3 + particle % 4))
+                                        .opacity(1 - splash)
+                                        .offset(x: hitX + dx, y: 53 + dy)
+                                }
+                                // A small splash crown shoots upward at impact.
+                                Capsule()
+                                    .fill(accent.opacity(1 - splash))
+                                    .frame(width: 5, height: 8 + CGFloat(splash) * 25)
+                                    .shadow(color: accent, radius: 6)
+                                    .offset(x: hitX, y: 47 - CGFloat(splash) * 12)
+                            }
                         }
-                        ForEach(0..<12, id: \.self) { index in
-                            let phase = (elapsed * 0.68 + Double(index % 3) / 3).truncatingRemainder(dividingBy: 1)
-                            Circle()
-                                .fill(accent.opacity(1 - phase))
-                                .frame(width: CGFloat(3 + index % 3), height: CGFloat(3 + index % 3))
-                                .offset(x: CGFloat(index - 6) * 9 * phase,
-                                        y: 49 - CGFloat(32 + index % 4 * 9) * sin(phase * .pi))
+                        // Ambient concentric rings keep the pool alive.
+                        ForEach(0..<3, id: \.self) { ring in
+                            let phase = (elapsed * 0.36 + Double(ring) / 3.0)
+                                .truncatingRemainder(dividingBy: 1.0)
+                            Ellipse()
+                                .stroke(accent.opacity((1 - phase) * 0.55), lineWidth: 1.5)
+                                .frame(width: 35 + CGFloat(phase) * 210,
+                                       height: 8 + CGFloat(phase) * 33)
+                                .offset(y: 53)
                         }
                     }
                     .frame(height: 178)
@@ -862,5 +901,18 @@ private struct LiquidDripParticle: View {
             }
         }
         .frame(width: width + 6, height: 6, alignment: .top)
+    }
+}
+
+// Tiny glowing liquid beads thrown outward by a droplet impact.
+private struct LiquidSplashSpeck: View {
+    let accent: Color
+    let size: CGFloat
+
+    var body: some View {
+        Ellipse()
+            .fill(accent)
+            .frame(width: size, height: size * 1.5)
+            .shadow(color: accent, radius: 5)
     }
 }
