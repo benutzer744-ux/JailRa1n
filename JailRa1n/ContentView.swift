@@ -30,6 +30,48 @@ enum JailRa1nTheme: String, CaseIterable, Identifiable {
     }
 }
 
+
+// MARK: - Localized interface strings
+private enum JRLanguage {
+    static func text(_ key: String, _ lang: String) -> String {
+        let translations: [String: [String: String]] = [
+            "Settings": ["de":"Einstellungen","fr":"Réglages","es":"Ajustes","it":"Impostazioni"],
+            "Done": ["de":"Fertig","fr":"Terminé","es":"Listo","it":"Fine"],
+            "Bootstrap Manager": ["de":"Bootstrap-Manager","fr":"Gestionnaire Bootstrap","es":"Gestor Bootstrap","it":"Gestore Bootstrap"],
+            "Device Information": ["de":"Geräteinformationen","fr":"Informations appareil","es":"Información del dispositivo","it":"Informazioni dispositivo"],
+            "Device Name": ["de":"Gerätename","fr":"Nom de l’appareil","es":"Nombre del dispositivo","it":"Nome dispositivo"],
+            "iPhone Model": ["de":"iPhone-Modell","fr":"Modèle iPhone","es":"Modelo de iPhone","it":"Modello iPhone"],
+            "iOS Version": ["de":"iOS-Version","fr":"Version iOS","es":"Versión de iOS","it":"Versione iOS"],
+            "Jailbreak Engine": ["de":"Jailbreak-Engine","fr":"Moteur Jailbreak","es":"Motor Jailbreak","it":"Motore Jailbreak"],
+            "Unavailable": ["de":"Nicht verfügbar","fr":"Indisponible","es":"No disponible","it":"Non disponibile"],
+            "Not Verified": ["de":"Nicht überprüft","fr":"Non vérifié","es":"Sin verificar","it":"Non verificato"],
+            "Check Device": ["de":"Gerät prüfen","fr":"Vérifier l’appareil","es":"Comprobar dispositivo","it":"Verifica dispositivo"],
+            "Customize JailRa1n": ["de":"JailRa1n anpassen","fr":"Personnaliser JailRa1n","es":"Personalizar JailRa1n","it":"Personalizza JailRa1n"],
+            "Language / Sprache": ["de":"Sprache","fr":"Langue","es":"Idioma","it":"Lingua"],
+            "Power & Animation": ["de":"System & Animation","fr":"Système et animation","es":"Sistema y animación","it":"Sistema e animazione"],
+            "Respring – Ultimate Drip Preview": ["de":"Respring – Ultimate-Drip-Vorschau","fr":"Respring – aperçu Ultimate Drip","es":"Respring – vista previa Ultimate Drip","it":"Respring – anteprima Ultimate Drip"],
+            "Reboot – Unavailable": ["de":"Neustart – nicht verfügbar","fr":"Redémarrage indisponible","es":"Reinicio no disponible","it":"Riavvio non disponibile"],
+            "Restart JailRa1n UI": ["de":"JailRa1n-Oberfläche neu laden","fr":"Relancer l’interface JailRa1n","es":"Reiniciar interfaz JailRa1n","it":"Riavvia interfaccia JailRa1n"],
+            "System Logs": ["de":"Systemprotokoll","fr":"Journal système","es":"Registros del sistema","it":"Log di sistema"],
+            "Neon Animations": ["de":"Neon-Animationen","fr":"Animations néon","es":"Animaciones neón","it":"Animazioni neon"],
+            "Close Preview": ["de":"Vorschau schließen","fr":"Fermer l’aperçu","es":"Cerrar vista previa","it":"Chiudi anteprima"],
+            "Reboot unavailable": ["de":"Neustart nicht verfügbar","fr":"Redémarrage indisponible","es":"Reinicio no disponible","it":"Riavvio non disponibile"],
+            "Bootstrap Status": ["de":"Bootstrap-Status","fr":"État Bootstrap","es":"Estado Bootstrap","it":"Stato Bootstrap"],
+            "Compatibility Check": ["de":"Kompatibilitätsprüfung","fr":"Vérification compatibilité","es":"Comprobación compatibilidad","it":"Verifica compatibilità"],
+            "Check Compatibility": ["de":"Kompatibilität prüfen","fr":"Vérifier compatibilité","es":"Comprobar compatibilidad","it":"Verifica compatibilità"],
+            "Sileo Detection": ["de":"Sileo-Erkennung","fr":"Détection Sileo","es":"Detección Sileo","it":"Rilevamento Sileo"],
+            "Detect Sileo": ["de":"Sileo erkennen","fr":"Détecter Sileo","es":"Detectar Sileo","it":"Rileva Sileo"],
+            "Open Sileo": ["de":"Sileo öffnen","fr":"Ouvrir Sileo","es":"Abrir Sileo","it":"Apri Sileo"],
+            "Sileo Installer Manager": ["de":"Sileo-Installationsmanager","fr":"Gestionnaire installation Sileo","es":"Gestor instalación Sileo","it":"Gestore installazione Sileo"],
+            "Check Installation Requirements": ["de":"Installationsvoraussetzungen prüfen","fr":"Vérifier les prérequis","es":"Comprobar requisitos","it":"Verifica requisiti"],
+            "Install Sileo": ["de":"Sileo installieren","fr":"Installer Sileo","es":"Instalar Sileo","it":"Installa Sileo"],
+            "Installation Logs": ["de":"Installationsprotokoll","fr":"Journal installation","es":"Registro instalación","it":"Log installazione"],
+            "Clear Logs": ["de":"Protokoll löschen","fr":"Effacer le journal","es":"Borrar registro","it":"Cancella log"]
+        ]
+        return translations[key]?[lang] ?? key
+    }
+}
+
 // MARK: - Device information
 
 enum JailRa1nDevice {
@@ -114,11 +156,17 @@ private struct JRActionButton: View {
 struct ContentView: View {
     @AppStorage("selectedTheme") private var selectedTheme = "green"
     @AppStorage("animationsEnabled") private var animationsEnabled = true
+    @AppStorage("appLanguage") private var appLanguage = "de"
 
     @State private var pulsing = false
     @State private var showSettings = false
     @State private var showBootstrap = false
     @State private var deviceChecked = false
+    @State private var showDrip = false
+    @State private var pendingDrip = false
+    @State private var showRebootNotice = false
+    @State private var showSystemLogs = false
+    @State private var interfaceReloadCount = 0
 
     private var accent: Color {
         JailRa1nTheme(rawValue: selectedTheme)?.color ?? .green
@@ -135,7 +183,7 @@ struct ContentView: View {
                     deviceCard
                     engineCard
                     JRActionButton(
-                        title: "Bootstrap Manager",
+                        title: JRLanguage.text("Bootstrap Manager", appLanguage),
                         symbol: "shippingbox.fill",
                         accent: accent
                     ) {
@@ -149,7 +197,12 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(.dark)
-        .sheet(isPresented: $showSettings) {
+        .sheet(isPresented: $showSettings, onDismiss: {
+            if pendingDrip {
+                pendingDrip = false
+                showDrip = true
+            }
+        }) {
             settingsView
         }
         .sheet(isPresented: $showBootstrap) {
@@ -157,10 +210,38 @@ struct ContentView: View {
                 BootstrapView()
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
-                            Button("Done") { showBootstrap = false }
+                            Button(JRLanguage.text("Done", appLanguage)) { showBootstrap = false }
                                 .tint(accent)
                         }
                     }
+            }
+        }
+        .fullScreenCover(isPresented: $showDrip) {
+            UltimateDripView(accent: accent) { showDrip = false }
+        }
+        .alert(JRLanguage.text("Reboot unavailable", appLanguage), isPresented: $showRebootNotice) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("A sandboxed iOS app cannot reboot the device. No reboot was performed.")
+        }
+        .sheet(isPresented: $showSystemLogs) {
+            NavigationStack {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("[INFO] JailRa1n 0.6 started")
+                        Text("[INFO] iOS: \(JailRa1nDevice.iosVersion)")
+                        Text("[INFO] Device: \(JailRa1nDevice.identifier)")
+                        Text("[WARN] No bootstrap engine configured")
+                        Text("[INFO] UI reloads: \(interfaceReloadCount)")
+                    }
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundColor(accent)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                }
+                .background(Color.black)
+                .navigationTitle(JRLanguage.text("System Logs", appLanguage))
+                .toolbar { Button(JRLanguage.text("Done", appLanguage)) { showSystemLogs = false } }
             }
         }
         .onAppear { pulsing = true }
@@ -170,7 +251,7 @@ struct ContentView: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("JailRa1n").font(.headline).foregroundColor(.white)
-                Text("Version 0.5").font(.caption).foregroundColor(.gray)
+                Text("Version 0.6").font(.caption).foregroundColor(.gray)
             }
             Spacer()
             Button { showSettings = true } label: {
@@ -222,7 +303,7 @@ struct ContentView: View {
             Text("Sileo Installer Edition")
                 .font(.subheadline)
                 .foregroundColor(.gray)
-            Text("INTERFACE PREVIEW 0.5")
+            Text("INTERFACE PREVIEW 0.6")
                 .font(.system(size: 11, weight: .semibold, design: .monospaced))
                 .tracking(2)
                 .foregroundColor(accent)
@@ -231,22 +312,22 @@ struct ContentView: View {
 
     private var deviceCard: some View {
         JRCard(accent: accent) {
-            Label("Device Information", systemImage: "iphone")
+            Label(JRLanguage.text("Device Information", appLanguage), systemImage: "iphone")
                 .font(.headline).foregroundColor(accent)
             Divider()
-            JRInfoRow(title: "Device Name", value: JailRa1nDevice.name)
-            JRInfoRow(title: "iPhone Model", value: JailRa1nDevice.identifier)
-            JRInfoRow(title: "iOS Version", value: JailRa1nDevice.iosVersion)
-            JRInfoRow(title: "Jailbreak", value: "Not Verified")
+            JRInfoRow(title: JRLanguage.text("Device Name", appLanguage), value: JailRa1nDevice.name)
+            JRInfoRow(title: JRLanguage.text("iPhone Model", appLanguage), value: JailRa1nDevice.identifier)
+            JRInfoRow(title: JRLanguage.text("iOS Version", appLanguage), value: JailRa1nDevice.iosVersion)
+            JRInfoRow(title: "Jailbreak", value: JRLanguage.text("Not Verified", appLanguage))
         }
     }
 
     private var engineCard: some View {
         JRCard(accent: accent) {
-            Label("Jailbreak Engine", systemImage: "cpu")
+            Label(JRLanguage.text("Jailbreak Engine", appLanguage), systemImage: "cpu")
                 .font(.headline).foregroundColor(accent)
             Divider()
-            Label("Unavailable", systemImage: "exclamationmark.circle.fill")
+            Label(JRLanguage.text("Unavailable", appLanguage), systemImage: "exclamationmark.circle.fill")
                 .foregroundColor(.orange)
             Text("No jailbreak or bootstrap engine is included.")
                 .font(.subheadline).foregroundColor(.gray)
@@ -256,7 +337,7 @@ struct ContentView: View {
     private var deviceCheckCard: some View {
         VStack(spacing: 10) {
             JRActionButton(
-                title: "Check Device",
+                title: JRLanguage.text("Check Device", appLanguage),
                 symbol: "checkmark.shield.fill",
                 accent: accent
             ) {
@@ -273,7 +354,7 @@ struct ContentView: View {
 
     private var footer: some View {
         VStack(spacing: 5) {
-            Text("JailRa1n • Version 0.5").foregroundColor(accent)
+            Text("JailRa1n • Version 0.6").foregroundColor(accent)
             Text("Sileo Installer Preview • No Exploit")
                 .foregroundColor(.gray)
         }
@@ -288,7 +369,7 @@ struct ContentView: View {
                         .font(.system(size: 75))
                         .foregroundColor(accent)
                         .padding(.top, 20)
-                    Text("Customize JailRa1n")
+                    Text(JRLanguage.text("Customize JailRa1n", appLanguage))
                         .font(.title2.bold())
                         .foregroundColor(.white)
                     LazyVGrid(
@@ -322,6 +403,74 @@ struct ContentView: View {
                             .buttonStyle(.plain)
                         }
                     }
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label(JRLanguage.text("Language / Sprache", appLanguage), systemImage: "globe")
+                            .foregroundColor(accent)
+                            .font(.headline)
+                        Picker("Language", selection: $appLanguage) {
+                            Text("Deutsch").tag("de")
+                            Text("English").tag("en")
+                            Text("Français").tag("fr")
+                            Text("Español").tag("es")
+                            Text("Italiano").tag("it")
+                        }
+                        .tint(accent)
+                        Text(appLanguage == "de" ? "Sprache gespeichert. Die wichtigsten Menüs sind übersetzt." : "Language saved. Main menus are translated.")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                    .padding()
+                    .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 18))
+
+                    VStack(spacing: 12) {
+                        Label(JRLanguage.text("Power & Animation", appLanguage), systemImage: "bolt.fill")
+                            .font(.headline)
+                            .foregroundColor(accent)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Button {
+                            pendingDrip = true
+                            showSettings = false
+                        } label: {
+                            Label(JRLanguage.text("Respring – Ultimate Drip Preview", appLanguage), systemImage: "drop.fill")
+                                .frame(maxWidth: .infinity)
+                                .padding(14)
+                                .background(accent, in: RoundedRectangle(cornerRadius: 14))
+                                .foregroundColor(.black)
+                        }
+                        Button {
+                            showRebootNotice = true
+                        } label: {
+                            Label(JRLanguage.text("Reboot – Unavailable", appLanguage), systemImage: "power")
+                                .frame(maxWidth: .infinity)
+                                .padding(14)
+                                .background(Color.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
+                                .foregroundColor(.white)
+                        }
+                        Button {
+                            interfaceReloadCount += 1
+                            deviceChecked = false
+                            pulsing = false
+                            showSettings = false
+                            DispatchQueue.main.async { pulsing = true }
+                        } label: {
+                            Label(JRLanguage.text("Restart JailRa1n UI", appLanguage), systemImage: "arrow.clockwise")
+                                .frame(maxWidth: .infinity).padding(14)
+                                .background(Color.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
+                                .foregroundColor(.white)
+                        }
+                        Button { showSystemLogs = true } label: {
+                            Label(JRLanguage.text("System Logs", appLanguage), systemImage: "terminal")
+                                .frame(maxWidth: .infinity).padding(14)
+                                .background(Color.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
+                                .foregroundColor(.white)
+                        }
+                        Text(appLanguage == "de" ? "Diese Funktionen verändern weder SpringBoard noch starten sie iOS neu." : "These controls do not modify SpringBoard or reboot iOS.")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                    .padding()
+                    .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 18))
+
                     Toggle("Neon Animations", isOn: $animationsEnabled)
                         .tint(accent)
                         .foregroundColor(.white)
@@ -334,11 +483,11 @@ struct ContentView: View {
                 .padding(20)
             }
             .background(Color.black)
-            .navigationTitle("Settings")
+            .navigationTitle(JRLanguage.text("Settings", appLanguage))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { showSettings = false }
+                    Button(JRLanguage.text("Done", appLanguage)) { showSettings = false }
                         .tint(accent)
                 }
             }
@@ -350,6 +499,7 @@ struct ContentView: View {
 // MARK: - Bootstrap and Sileo manager
 
 struct BootstrapView: View {
+    @AppStorage("appLanguage") private var appLanguage = "de"
     @AppStorage("selectedTheme") private var selectedTheme = "green"
 
     @State private var sileoChecked = false
@@ -357,7 +507,7 @@ struct BootstrapView: View {
     @State private var compatibilityChecked = false
     @State private var installerChecked = false
     @State private var logs: [String] = [
-        "[INFO] JailRa1n 0.5 initialized",
+        "[INFO] JailRa1n 0.6 initialized",
         "[INFO] App sandbox available",
         "[WARN] No bootstrap engine configured"
     ]
@@ -374,10 +524,10 @@ struct BootstrapView: View {
                     .foregroundColor(accent)
                     .shadow(color: accent.opacity(0.7), radius: 20)
                     .padding(.top, 20)
-                Text("Bootstrap Manager")
+                Text(JRLanguage.text("Bootstrap Manager", appLanguage))
                     .font(.title.bold())
                     .foregroundColor(accent)
-                Text("JailRa1n 0.5 • Sileo Installer")
+                Text("JailRa1n 0.6 • Sileo Installer")
                     .font(.caption)
                     .foregroundColor(.gray)
                 statusCard
@@ -396,11 +546,11 @@ struct BootstrapView: View {
 
     private var statusCard: some View {
         JRCard(accent: accent) {
-            Label("Bootstrap Status", systemImage: "cube.box.fill")
+            Label(JRLanguage.text("Bootstrap Status", appLanguage), systemImage: "cube.box.fill")
                 .font(.headline).foregroundColor(accent)
             Divider()
             JRInfoRow(title: "Bootstrap", value: "Not Installed")
-            JRInfoRow(title: "Engine", value: "Unavailable")
+            JRInfoRow(title: "Engine", value: JRLanguage.text("Unavailable", appLanguage))
             JRInfoRow(title: "Environment", value: "App Sandbox")
             JRInfoRow(title: "System Access", value: "Not Available")
         }
@@ -408,17 +558,17 @@ struct BootstrapView: View {
 
     private var compatibilityCard: some View {
         JRCard(accent: accent) {
-            Label("Compatibility Check", systemImage: "checkmark.shield.fill")
+            Label(JRLanguage.text("Compatibility Check", appLanguage), systemImage: "checkmark.shield.fill")
                 .font(.headline).foregroundColor(accent)
             Divider()
             JRInfoRow(title: "Device", value: JailRa1nDevice.identifier)
-            JRInfoRow(title: "iOS Version", value: JailRa1nDevice.iosVersion)
+            JRInfoRow(title: JRLanguage.text("iOS Version", appLanguage), value: JailRa1nDevice.iosVersion)
             if compatibilityChecked {
                 Text("No supported bootstrap engine is configured.")
                     .font(.caption).foregroundColor(.orange)
             }
             JRActionButton(
-                title: "Check Compatibility",
+                title: JRLanguage.text("Check Compatibility", appLanguage),
                 symbol: "magnifyingglass",
                 accent: accent
             ) {
@@ -432,7 +582,7 @@ struct BootstrapView: View {
 
     private var sileoCard: some View {
         JRCard(accent: accent) {
-            Label("Sileo Detection", systemImage: "magnifyingglass")
+            Label(JRLanguage.text("Sileo Detection", appLanguage), systemImage: "magnifyingglass")
                 .font(.headline).foregroundColor(accent)
             Divider()
             JRInfoRow(
@@ -442,7 +592,7 @@ struct BootstrapView: View {
                     : "Not Checked"
             )
             JRActionButton(
-                title: "Detect Sileo",
+                title: JRLanguage.text("Detect Sileo", appLanguage),
                 symbol: "checkmark.shield",
                 accent: accent
             ) {
@@ -454,7 +604,7 @@ struct BootstrapView: View {
                         UIApplication.shared.open(url)
                     }
                 } label: {
-                    Label("Open Sileo", systemImage: "arrow.up.right.square")
+                    Label(JRLanguage.text("Open Sileo", appLanguage), systemImage: "arrow.up.right.square")
                         .foregroundColor(accent)
                 }
             }
@@ -466,12 +616,12 @@ struct BootstrapView: View {
 
     private var installerCard: some View {
         JRCard(accent: accent) {
-            Label("Sileo Installer Manager", systemImage: "square.and.arrow.down.fill")
+            Label(JRLanguage.text("Sileo Installer Manager", appLanguage), systemImage: "square.and.arrow.down.fill")
                 .font(.headline).foregroundColor(accent)
             Divider()
-            JRInfoRow(title: "Installer Status", value: "Unavailable")
+            JRInfoRow(title: "Installer Status", value: JRLanguage.text("Unavailable", appLanguage))
             JRInfoRow(title: "Bootstrap Engine", value: "Not Configured")
-            JRInfoRow(title: "System Permissions", value: "Unavailable")
+            JRInfoRow(title: "System Permissions", value: JRLanguage.text("Unavailable", appLanguage))
             if installerChecked {
                 Label(
                     "Installation blocked: no compatible bootstrap engine.",
@@ -481,13 +631,13 @@ struct BootstrapView: View {
                 .foregroundColor(.orange)
             }
             JRActionButton(
-                title: "Check Installation Requirements",
+                title: JRLanguage.text("Check Installation Requirements", appLanguage),
                 symbol: "shield.lefthalf.filled",
                 accent: accent
             ) {
                 runInstallerCheck()
             }
-            Label("Install Sileo", systemImage: "lock.fill")
+            Label(JRLanguage.text("Install Sileo", appLanguage), systemImage: "lock.fill")
                 .font(.headline)
                 .foregroundColor(.gray)
                 .frame(maxWidth: .infinity)
@@ -504,7 +654,7 @@ struct BootstrapView: View {
 
     private var logsCard: some View {
         JRCard(accent: accent) {
-            Label("Installation Logs", systemImage: "terminal")
+            Label(JRLanguage.text("Installation Logs", appLanguage), systemImage: "terminal")
                 .font(.headline).foregroundColor(accent)
             Divider()
             ForEach(logs.indices, id: \.self) { index in
@@ -514,7 +664,7 @@ struct BootstrapView: View {
                         logs[index].contains("[WARN]") ? .orange : accent
                     )
             }
-            Button("Clear Logs") { logs.removeAll() }
+            Button(JRLanguage.text("Clear Logs", appLanguage)) { logs.removeAll() }
                 .foregroundColor(accent)
         }
     }
@@ -537,5 +687,139 @@ struct BootstrapView: View {
         logs.append("[INFO] iOS: \(JailRa1nDevice.iosVersion)")
         logs.append("[WARN] Bootstrap engine unavailable")
         logs.append("[WARN] Installation safely blocked")
+    }
+}
+
+
+// MARK: - Ultimate Drip: animated liquid, droplets, splash and ripples
+
+private struct LiquidDrop: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let x = rect.midX
+        p.move(to: CGPoint(x: x, y: rect.minY))
+        p.addCurve(to: CGPoint(x: rect.maxX, y: rect.minY + rect.height * 0.69),
+                   control1: CGPoint(x: rect.maxX * 0.72, y: rect.minY + rect.height * 0.32),
+                   control2: CGPoint(x: rect.maxX, y: rect.minY + rect.height * 0.49))
+        p.addArc(center: CGPoint(x: x, y: rect.minY + rect.height * 0.69),
+                 radius: rect.width / 2, startAngle: .degrees(0), endAngle: .degrees(180), clockwise: false)
+        p.addCurve(to: CGPoint(x: x, y: rect.minY),
+                   control1: CGPoint(x: rect.minX, y: rect.minY + rect.height * 0.49),
+                   control2: CGPoint(x: rect.minX + rect.width * 0.28, y: rect.minY + rect.height * 0.32))
+        p.closeSubpath()
+        return p
+    }
+}
+
+struct UltimateDripView: View {
+    let accent: Color
+    let dismiss: () -> Void
+    @AppStorage("appLanguage") private var appLanguage = "de"
+    @State private var startDate = Date()
+    @State private var isClosing = false
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+            let elapsed = timeline.date.timeIntervalSince(startDate)
+            ZStack {
+                Color.black.ignoresSafeArea()
+                RadialGradient(colors: [accent.opacity(0.16), .black], center: .center,
+                               startRadius: 10, endRadius: 310).ignoresSafeArea()
+                VStack(spacing: 0) {
+                    ZStack {
+                        LiquidDrop()
+                            .fill(LinearGradient(colors: [.white.opacity(0.85), accent, accent.opacity(0.5)],
+                                                 startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .frame(width: 168, height: 194)
+                            .shadow(color: accent, radius: 22)
+                            .scaleEffect(1 + 0.025 * sin(elapsed * 3))
+                            .offset(y: -30)
+                        // Each attached strand grows and retracts; detached drops fall independently.
+                        ForEach(0..<7, id: \.self) { index in
+                            let phase = (elapsed * 0.65 + Double(index) * 0.21).truncatingRemainder(dividingBy: 1)
+                            let growth = min(phase / 0.42, 1)
+                            let attached = phase < 0.55
+                            let x = CGFloat(index - 3) * 19
+                            if attached {
+                                Capsule()
+                                    .fill(accent)
+                                    .frame(width: CGFloat(5 + index % 3), height: 12 + 49 * growth)
+                                    .shadow(color: accent, radius: 7)
+                                    .offset(x: x, y: 57 + 25 * growth)
+                            } else {
+                                let fall = (phase - 0.55) / 0.45
+                                Ellipse()
+                                    .fill(accent)
+                                    .frame(width: 8, height: 16)
+                                    .shadow(color: accent, radius: 8)
+                                    .offset(x: x, y: 93 + 180 * fall * fall)
+                            }
+                        }
+                    }
+                    .frame(height: 260)
+
+                    Text("JailRa1n")
+                        .font(.system(size: 43, weight: .black, design: .rounded))
+                        .minimumScaleFactor(0.7)
+                        .lineLimit(1)
+                        .foregroundColor(accent)
+                        .shadow(color: accent, radius: 14)
+                        .offset(x: elapsed.truncatingRemainder(dividingBy: 2.8) > 2.68 ? 3 : 0)
+
+                    // Separate falling drops below the lettering.
+                    ZStack {
+                        ForEach(0..<6, id: \.self) { index in
+                            let phase = (elapsed * 0.58 + Double(index) * 0.17).truncatingRemainder(dividingBy: 1)
+                            let growing = phase < 0.32
+                            let falling = max(0, (phase - 0.32) / 0.68)
+                            Capsule()
+                                .fill(accent)
+                                .frame(width: CGFloat(5 + index % 3), height: growing ? 7 + 24 * phase / 0.32 : 13)
+                                .shadow(color: accent, radius: 7)
+                                .offset(x: CGFloat(index - 3) * 34 + 15,
+                                        y: growing ? 7 : 24 + 115 * falling * falling)
+                        }
+                        ForEach(0..<3, id: \.self) { index in
+                            let phase = (elapsed * 0.75 + Double(index) / 3).truncatingRemainder(dividingBy: 1)
+                            Ellipse()
+                                .stroke(accent.opacity(1 - phase), lineWidth: 2)
+                                .frame(width: 25 + 180 * phase, height: 7 + 28 * phase)
+                                .offset(y: 138)
+                        }
+                        ForEach(0..<12, id: \.self) { index in
+                            let phase = (elapsed * 0.75 + Double(index % 3) / 3).truncatingRemainder(dividingBy: 1)
+                            Circle()
+                                .fill(accent.opacity(1 - phase))
+                                .frame(width: 3 + CGFloat(index % 3), height: 3 + CGFloat(index % 3))
+                                .offset(x: CGFloat(index - 6) * 9 * phase,
+                                        y: 138 - CGFloat(32 + index % 4 * 9) * sin(phase * .pi))
+                        }
+                    }
+                    .frame(height: 160)
+
+                    Text("RESPRING • ANIMATION PREVIEW")
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .tracking(1)
+                        .foregroundColor(.gray)
+                        .padding(.top, 8)
+                    Button(JRLanguage.text("Close Preview", appLanguage)) { close() }
+                        .foregroundColor(accent)
+                        .padding(.top, 24)
+                }
+                .padding(.horizontal, 20)
+            }
+        }
+        .preferredColorScheme(.dark)
+        .onAppear {
+            startDate = Date()
+            isClosing = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 6) { close() }
+        }
+    }
+
+    private func close() {
+        guard !isClosing else { return }
+        isClosing = true
+        dismiss()
     }
 }
