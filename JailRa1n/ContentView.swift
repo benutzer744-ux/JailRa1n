@@ -66,6 +66,10 @@ private enum JRLanguage {
             "Check Installation Requirements": ["de":"Installationsvoraussetzungen prüfen","fr":"Vérifier les prérequis","es":"Comprobar requisitos","it":"Verifica requisiti"],
             "Install Sileo": ["de":"Sileo installieren","fr":"Installer Sileo","es":"Instalar Sileo","it":"Installa Sileo"],
             "Installation Logs": ["de":"Installationsprotokoll","fr":"Journal installation","es":"Registro instalación","it":"Log installazione"],
+            "Package Managers": ["de":"Paketmanager","fr":"Gestionnaires de paquets","es":"Gestores de paquetes","it":"Gestori di pacchetti"],
+            "Detect Cydia": ["de":"Cydia erkennen","fr":"Détecter Cydia","es":"Detectar Cydia","it":"Rileva Cydia"],
+            "Open Cydia": ["de":"Cydia öffnen","fr":"Ouvrir Cydia","es":"Abrir Cydia","it":"Apri Cydia"],
+            "Check Package Managers": ["de":"Paketmanager prüfen","fr":"Vérifier les gestionnaires","es":"Comprobar gestores","it":"Verifica gestori"],
             "Clear Logs": ["de":"Protokoll löschen","fr":"Effacer le journal","es":"Borrar registro","it":"Cancella log"]
         ]
         return translations[key]?[lang] ?? key
@@ -228,7 +232,7 @@ struct ContentView: View {
             NavigationStack {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("[INFO] JailRa1n 0.6 started")
+                        Text("[INFO] JailRa1n 0.8 started")
                         Text("[INFO] iOS: \(JailRa1nDevice.iosVersion)")
                         Text("[INFO] Device: \(JailRa1nDevice.identifier)")
                         Text("[WARN] No bootstrap engine configured")
@@ -251,7 +255,7 @@ struct ContentView: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("JailRa1n").font(.headline).foregroundColor(.white)
-                Text("Version 0.6").font(.caption).foregroundColor(.gray)
+                Text("Version 0.8").font(.caption).foregroundColor(.gray)
             }
             Spacer()
             Button { showSettings = true } label: {
@@ -300,10 +304,10 @@ struct ContentView: View {
             Text("JailRa1n")
                 .font(.system(size: 44, weight: .bold, design: .rounded))
                 .foregroundColor(accent)
-            Text("Sileo Installer Edition")
+            Text("Sileo & Cydia Edition")
                 .font(.subheadline)
                 .foregroundColor(.gray)
-            Text("INTERFACE PREVIEW 0.6")
+            Text("INTERFACE PREVIEW 0.8")
                 .font(.system(size: 11, weight: .semibold, design: .monospaced))
                 .tracking(2)
                 .foregroundColor(accent)
@@ -354,8 +358,8 @@ struct ContentView: View {
 
     private var footer: some View {
         VStack(spacing: 5) {
-            Text("JailRa1n • Version 0.6").foregroundColor(accent)
-            Text("Sileo Installer Preview • No Exploit")
+            Text("JailRa1n • Version 0.8").foregroundColor(accent)
+            Text("Sileo & Cydia Preview • No Exploit")
                 .foregroundColor(.gray)
         }
         .font(.caption)
@@ -504,10 +508,12 @@ struct BootstrapView: View {
 
     @State private var sileoChecked = false
     @State private var sileoDetected = false
+    @State private var cydiaChecked = false
+    @State private var cydiaDetected = false
     @State private var compatibilityChecked = false
     @State private var installerChecked = false
     @State private var logs: [String] = [
-        "[INFO] JailRa1n 0.6 initialized",
+        "[INFO] JailRa1n 0.8 initialized",
         "[INFO] App sandbox available",
         "[WARN] No bootstrap engine configured"
     ]
@@ -527,12 +533,12 @@ struct BootstrapView: View {
                 Text(JRLanguage.text("Bootstrap Manager", appLanguage))
                     .font(.title.bold())
                     .foregroundColor(accent)
-                Text("JailRa1n 0.6 • Sileo Installer")
+                Text("JailRa1n 0.8 • Sileo & Cydia Manager")
                     .font(.caption)
                     .foregroundColor(.gray)
                 statusCard
                 compatibilityCard
-                sileoCard
+                packageManagersCard
                 installerCard
                 logsCard
             }
@@ -580,43 +586,64 @@ struct BootstrapView: View {
         }
     }
 
-    private var sileoCard: some View {
+    private var packageManagersCard: some View {
         JRCard(accent: accent) {
-            Label(JRLanguage.text("Sileo Detection", appLanguage), systemImage: "magnifyingglass")
+            Label(JRLanguage.text("Package Managers", appLanguage), systemImage: "shippingbox.fill")
                 .font(.headline).foregroundColor(accent)
             Divider()
-            JRInfoRow(
-                title: "Sileo Status",
-                value: sileoChecked
-                    ? (sileoDetected ? "Detected" : "Not Detected")
-                    : "Not Checked"
-            )
-            JRActionButton(
-                title: JRLanguage.text("Detect Sileo", appLanguage),
-                symbol: "checkmark.shield",
-                accent: accent
-            ) {
-                detectSileo()
+            packageManagerRow(name: "Sileo", symbol: "square.stack.3d.up.fill",
+                              checked: sileoChecked, detected: sileoDetected,
+                              scheme: "sileo://")
+            Divider()
+            packageManagerRow(name: "Cydia", symbol: "archivebox.fill",
+                              checked: cydiaChecked, detected: cydiaDetected,
+                              scheme: "cydia://")
+            JRActionButton(title: JRLanguage.text("Check Package Managers", appLanguage),
+                           symbol: "magnifyingglass", accent: accent) {
+                detectPackageManagers()
             }
-            if sileoDetected {
+            Text(appLanguage == "de"
+                 ? "Die Prüfung erkennt nur registrierte URL-Schemes. Sie bestätigt weder eine funktionierende Installation noch einen Jailbreak."
+                 : "This checks registered URL schemes only. It does not confirm a working installation or jailbreak.")
+                .font(.caption).foregroundColor(.gray)
+        }
+    }
+
+    @ViewBuilder
+    private func packageManagerRow(name: String, symbol: String, checked: Bool,
+                                   detected: Bool, scheme: String) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label(name, systemImage: symbol)
+                .font(.headline).foregroundColor(.white)
+            HStack {
+                Text(appLanguage == "de" ? "Status" : "Status")
+                    .foregroundColor(.gray)
+                Spacer()
+                Text(!checked ? (appLanguage == "de" ? "Nicht geprüft" : "Not checked")
+                     : detected ? (appLanguage == "de" ? "URL-Scheme erkannt" : "URL scheme detected")
+                     : (appLanguage == "de" ? "Nicht erkannt" : "Not detected"))
+                    .foregroundColor(detected ? accent : .orange)
+            }
+            .font(.subheadline)
+            if detected {
                 Button {
-                    if let url = URL(string: "sileo://") {
-                        UIApplication.shared.open(url)
+                    guard let url = URL(string: scheme) else { return }
+                    UIApplication.shared.open(url, options: [:]) { success in
+                        logs.append(success ? "[INFO] \(name) opened" : "[WARN] Could not open \(name)")
                     }
                 } label: {
-                    Label(JRLanguage.text("Open Sileo", appLanguage), systemImage: "arrow.up.right.square")
+                    Label(name == "Sileo" ? JRLanguage.text("Open Sileo", appLanguage)
+                          : JRLanguage.text("Open Cydia", appLanguage),
+                          systemImage: "arrow.up.right.square")
                         .foregroundColor(accent)
                 }
             }
-            Text("Checks whether iOS can open the Sileo URL scheme. This does not verify a working bootstrap.")
-                .font(.caption)
-                .foregroundColor(.gray)
         }
     }
 
     private var installerCard: some View {
         JRCard(accent: accent) {
-            Label(JRLanguage.text("Sileo Installer Manager", appLanguage), systemImage: "square.and.arrow.down.fill")
+            Label(appLanguage == "de" ? "Installationsstatus" : "Installation Status", systemImage: "square.and.arrow.down.fill")
                 .font(.headline).foregroundColor(accent)
             Divider()
             JRInfoRow(title: "Installer Status", value: JRLanguage.text("Unavailable", appLanguage))
@@ -637,7 +664,7 @@ struct BootstrapView: View {
             ) {
                 runInstallerCheck()
             }
-            Label(JRLanguage.text("Install Sileo", appLanguage), systemImage: "lock.fill")
+            Label(appLanguage == "de" ? "Sileo / Cydia installieren – gesperrt" : "Install Sileo / Cydia – disabled", systemImage: "lock.fill")
                 .font(.headline)
                 .foregroundColor(.gray)
                 .frame(maxWidth: .infinity)
@@ -646,7 +673,7 @@ struct BootstrapView: View {
                     Color.white.opacity(0.08),
                     in: RoundedRectangle(cornerRadius: 15)
                 )
-            Text("Installation is disabled: no compatible bootstrap is integrated.")
+            Text(appLanguage == "de" ? "Installation deaktiviert: keine kompatible Bootstrap-Engine integriert." : "Installation is disabled: no compatible bootstrap is integrated.")
                 .font(.caption)
                 .foregroundColor(.gray)
         }
@@ -669,15 +696,13 @@ struct BootstrapView: View {
         }
     }
 
-    private func detectSileo() {
-        guard let url = URL(string: "sileo://") else { return }
+    private func detectPackageManagers() {
         sileoChecked = true
-        sileoDetected = UIApplication.shared.canOpenURL(url)
-        logs.append(
-            sileoDetected
-                ? "[INFO] Sileo URL scheme detected"
-                : "[WARN] Sileo URL scheme not detected"
-        )
+        cydiaChecked = true
+        sileoDetected = URL(string: "sileo://").map { UIApplication.shared.canOpenURL($0) } ?? false
+        cydiaDetected = URL(string: "cydia://").map { UIApplication.shared.canOpenURL($0) } ?? false
+        logs.append(sileoDetected ? "[INFO] Sileo URL scheme detected" : "[WARN] Sileo URL scheme not detected")
+        logs.append(cydiaDetected ? "[INFO] Cydia URL scheme detected" : "[WARN] Cydia URL scheme not detected")
     }
 
     private func runInstallerCheck() {
