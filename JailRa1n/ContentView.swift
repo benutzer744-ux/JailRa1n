@@ -235,7 +235,7 @@ struct ContentView: View {
             NavigationStack {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("[INFO] JailRa1n 0.8 started")
+                        Text("[INFO] JailRa1n 0.9 started")
                         Text("[INFO] iOS: \(JailRa1nDevice.iosVersion)")
                         Text("[INFO] Device: \(JailRa1nDevice.identifier)")
                         Text("[WARN] No bootstrap engine configured")
@@ -258,7 +258,7 @@ struct ContentView: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("JailRa1n").font(.headline).foregroundColor(.white)
-                Text("Version 0.8").font(.caption).foregroundColor(.gray)
+                Text("Version 0.9").font(.caption).foregroundColor(.gray)
             }
             Spacer()
             Button { showSettings = true } label: {
@@ -310,7 +310,7 @@ struct ContentView: View {
             Text("Sileo & Cydia Edition")
                 .font(.subheadline)
                 .foregroundColor(.gray)
-            Text("INTERFACE PREVIEW 0.8")
+            Text("INTERFACE PREVIEW 0.9")
                 .font(.system(size: 11, weight: .semibold, design: .monospaced))
                 .tracking(2)
                 .foregroundColor(accent)
@@ -384,7 +384,7 @@ struct ContentView: View {
 
     private var footer: some View {
         VStack(spacing: 5) {
-            Text("JailRa1n • Version 0.8").foregroundColor(accent)
+            Text("JailRa1n • Version 0.9").foregroundColor(accent)
             Text("Sileo & Cydia Preview • No Exploit")
                 .foregroundColor(.gray)
         }
@@ -501,6 +501,29 @@ struct ContentView: View {
                     .padding()
                     .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 18))
 
+                    NavigationLink {
+                        JailRa1nCreditsView(accent: accent)
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "heart.text.square.fill")
+                                .foregroundColor(accent)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Open Source & Credits")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                Text(appLanguage == "de" ? "Dopamine, Entwickler & Lizenzen" : "Dopamine, developers & licenses")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.gray)
+                        }
+                        .padding()
+                        .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 18))
+                    }
+                    .buttonStyle(.plain)
+
                     Toggle("Neon Animations", isOn: $animationsEnabled)
                         .tint(accent)
                         .foregroundColor(.white)
@@ -539,7 +562,7 @@ struct BootstrapView: View {
     @State private var compatibilityChecked = false
     @State private var installerChecked = false
     @State private var logs: [String] = [
-        "[INFO] JailRa1n 0.8 initialized",
+        "[INFO] JailRa1n 0.9 initialized",
         "[INFO] App sandbox available",
         "[WARN] No bootstrap engine configured"
     ]
@@ -559,7 +582,7 @@ struct BootstrapView: View {
                 Text(JRLanguage.text("Bootstrap Manager", appLanguage))
                     .font(.title.bold())
                     .foregroundColor(accent)
-                Text("JailRa1n 0.8 • Sileo & Cydia Manager")
+                Text("JailRa1n 0.9 • Sileo & Cydia Manager")
                     .font(.caption)
                     .foregroundColor(.gray)
                 statusCard
@@ -1022,5 +1045,55 @@ private struct LiquidSplashCrown: Shape {
                        control: CGPoint(x: rect.midX, y: bottom - rect.height * 0.22))
         p.closeSubpath()
         return p
+    }
+}
+
+// MARK: - Open source credits
+
+struct JailRa1nCreditsView: View {
+    let accent: Color
+    @AppStorage("appLanguage") private var appLanguage = "de"
+
+    private var german: Bool { appLanguage == "de" }
+
+    var body: some View {
+        List {
+            Section("Dopamine") {
+                Text(german
+                     ? "Dopamine wurde von Lars Fröder (opa334) und Mitwirkenden entwickelt."
+                     : "Dopamine was developed by Lars Fröder (opa334) and contributors.")
+                Link(destination: URL(string: "https://github.com/opa334/Dopamine")!) {
+                    Label(german ? "Offizielles Dopamine-Projekt" : "Official Dopamine project",
+                          systemImage: "arrow.up.right.square")
+                }
+                .foregroundColor(accent)
+            }
+
+            Section("JailRa1n") {
+                Text(german
+                     ? "JailRa1n ist ein unabhängiges Projekt und nicht offiziell mit Dopamine oder dessen Entwicklern verbunden."
+                     : "JailRa1n is an independent project and is not officially affiliated with Dopamine or its developers.")
+                Text(german
+                     ? "Aktuell enthält JailRa1n keine Dopamine-Jailbreak-Engine und kann keinen Jailbreak durchführen."
+                     : "JailRa1n currently does not include the Dopamine jailbreak engine and cannot perform a jailbreak.")
+                    .foregroundColor(.secondary)
+            }
+
+            Section(german ? "Lizenzen und Hinweise" : "Licenses and notices") {
+                Text(german
+                     ? "Vor einer Übernahme von fremdem Quellcode müssen die Lizenzbedingungen aller verwendeten Komponenten geprüft werden. Erforderliche Copyright- und Lizenztexte müssen vollständig erhalten bleiben."
+                     : "Before incorporating third-party code, the licenses of all included components must be reviewed. Required copyright and license notices must be preserved in full.")
+                Link(destination: URL(string: "https://github.com/opa334/Dopamine/blob/master/LICENSE")!) {
+                    Label(german ? "Lizenz im Originalprojekt ansehen" : "View license in original repository",
+                          systemImage: "doc.text")
+                }
+                .foregroundColor(accent)
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .background(Color.black)
+        .navigationTitle("Open Source & Credits")
+        .navigationBarTitleDisplayMode(.inline)
+        .preferredColorScheme(.dark)
     }
 }
