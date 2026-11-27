@@ -248,7 +248,7 @@ struct ContentView: View {
             NavigationStack {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("[INFO] JailRa1n 1.0 started")
+                        Text("[INFO] JailRa1n 1.1 started")
                         Text("[INFO] iOS: \(JailRa1nDevice.iosVersion)")
                         Text("[INFO] Device: \(JailRa1nDevice.identifier)")
                         Text("[WARN] No bootstrap engine configured")
@@ -271,7 +271,7 @@ struct ContentView: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("JailRa1n").font(.headline).foregroundColor(.white)
-                Text("Version 1.0").font(.caption).foregroundColor(.gray)
+                Text("Version 1.1").font(.caption).foregroundColor(.gray)
             }
             Spacer()
             Button { showSettings = true } label: {
@@ -323,7 +323,7 @@ struct ContentView: View {
             Text("Sileo & Cydia Edition")
                 .font(.subheadline)
                 .foregroundColor(.gray)
-            Text("INTERFACE PREVIEW 1.0")
+            Text("INTERFACE PREVIEW 1.1")
                 .font(.system(size: 11, weight: .semibold, design: .monospaced))
                 .tracking(2)
                 .foregroundColor(accent)
@@ -397,7 +397,7 @@ struct ContentView: View {
 
     private var footer: some View {
         VStack(spacing: 5) {
-            Text("JailRa1n • Version 1.0").foregroundColor(accent)
+            Text("JailRa1n • Version 1.1").foregroundColor(accent)
             Text("Sileo & Cydia Preview • No Exploit")
                 .foregroundColor(.gray)
         }
@@ -575,7 +575,7 @@ struct BootstrapView: View {
     @State private var compatibilityChecked = false
     @State private var installerChecked = false
     @State private var logs: [String] = [
-        "[INFO] JailRa1n 1.0 initialized",
+        "[INFO] JailRa1n 1.1 initialized",
         "[INFO] App sandbox available",
         "[WARN] No bootstrap engine configured"
     ]
@@ -595,7 +595,7 @@ struct BootstrapView: View {
                 Text(JRLanguage.text("Bootstrap Manager", appLanguage))
                     .font(.title.bold())
                     .foregroundColor(accent)
-                Text("JailRa1n 1.0 • Sileo & Cydia Manager")
+                Text("JailRa1n 1.1 • Sileo & Cydia Manager")
                     .font(.caption)
                     .foregroundColor(.gray)
                 statusCard
@@ -1119,7 +1119,6 @@ private struct JailRa1nJailbreakDashboard: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var checked = false
-    @State private var showTechnicalInfo = false
 
     private var isTargetDevice: Bool {
         JailRa1nDevice.identifier == "iPhone10,3" ||
@@ -1128,6 +1127,20 @@ private struct JailRa1nJailbreakDashboard: View {
 
     private var isTargetOS: Bool {
         JailRa1nDevice.iosVersion.hasPrefix("16.7.")
+    }
+
+    private var compatibilityText: String {
+        if isTargetDevice && isTargetOS {
+            return "Zielgerät erkannt – Engine fehlt"
+        }
+        if isTargetDevice {
+            return "iPhone X erkannt – iOS außerhalb des Zielbereichs"
+        }
+        return "Kein unterstütztes Jailbreak-Zielgerät"
+    }
+
+    private var compatibilityColor: Color {
+        isTargetDevice && isTargetOS ? .green : .orange
     }
 
     private var diagnosticProgress: Double {
@@ -1149,6 +1162,7 @@ private struct JailRa1nJailbreakDashboard: View {
             isTargetOS
                 ? "[OK] iOS 16.7.x erkannt"
                 : "[INFO] Andere iOS-Version erkannt",
+            "[INFO] Ergebnis: \(compatibilityText)",
             "[WARN] Exploit-Engine: nicht integriert",
             "[WARN] Bootstrap: nicht integriert",
             "[WARN] Sileo-Installation: nicht verfügbar",
@@ -1172,7 +1186,7 @@ private struct JailRa1nJailbreakDashboard: View {
                             .font(.title.bold())
                             .foregroundColor(.white)
 
-                        Text("ENGINE-VORBEREITUNG • 1.0")
+                        Text("ENGINE-VORBEREITUNG • 1.1")
                             .font(.caption.monospaced())
                             .tracking(2)
                             .foregroundColor(accent)
@@ -1189,6 +1203,30 @@ private struct JailRa1nJailbreakDashboard: View {
                         JRInfoRow(title: "iOS", value: JailRa1nDevice.iosVersion)
                         JRInfoRow(title: "Forschungsziel", value: "iPhone X · iOS 16.7.x")
                         JRInfoRow(title: "Engine", value: "Nicht integriert")
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: isTargetDevice && isTargetOS
+                                  ? "checkmark.circle.fill"
+                                  : "exclamationmark.triangle.fill")
+                            Text(compatibilityText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .font(.caption)
+                        .foregroundColor(compatibilityColor)
+                    }
+
+                    JRCard(accent: accent) {
+                        Label("Dopamine-Anbindung", systemImage: "link")
+                            .font(.headline)
+                            .foregroundColor(accent)
+                        Divider()
+                        JRInfoRow(title: "Projektstatus", value: "Vorbereitung")
+                        JRInfoRow(title: "Native Engine", value: "Nicht eingebunden")
+                        JRInfoRow(title: "Exploit-Ausführung", value: "Deaktiviert")
+                        Text("JailRa1n ist ein unabhängiges Projekt. Die technische "
+                             + "Verwendung externer Komponenten erfordert eine "
+                             + "separate Lizenz- und Integrationsprüfung.")
+                            .font(.caption)
+                            .foregroundColor(.gray)
                     }
 
                     JRCard(accent: accent) {
