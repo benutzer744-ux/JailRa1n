@@ -15,14 +15,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Select Xcode
+      - name: Check Xcode and project
         run: |
           xcodebuild -version
-
-      - name: Check project files
-        run: |
-          ls -la
-          ls -la JailRa1n
           test -f JailRa1n/JailRa1n.xcodeproj/project.pbxproj
           test -f JailRa1n/ContentView.swift
           test -f JailRa1n/JailRa1nApp.swift
@@ -38,7 +33,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build
 
-      - name: Configure Sileo Detection
+      - name: Configure package manager detection
         run: |
           APP_PATH="$RUNNER_TEMP/JailRa1nBuild/Build/Products/Release-iphoneos/JailRa1n.app"
           PLIST="$APP_PATH/Info.plist"
@@ -58,21 +53,30 @@ jobs:
             "$PLIST"
 
           /usr/libexec/PlistBuddy \
-            -c "Print :LSApplicationQueriesSchemes" \
+            -c "Add :LSApplicationQueriesSchemes:1 string cydia" \
             "$PLIST"
 
-      - name: Prepare app artifact
+      - name: Package IPA
         run: |
           APP_PATH="$RUNNER_TEMP/JailRa1nBuild/Build/Products/Release-iphoneos/JailRa1n.app"
 
           test -d "$APP_PATH"
-          mkdir -p output
-          cp -R "$APP_PATH" output/
 
-      - name: Upload JailRa1n app
+          mkdir -p package/Payload
+          cp -R "$APP_PATH" package/Payload/
+
+          cd package
+          zip -qry ../JailRa1n.ipa Payload
+
+      - name: Verify IPA structure
+        run: |
+          unzip -t JailRa1n.ipa
+          unzip -l JailRa1n.ipa | grep 'Payload/JailRa1n.app/'
+
+      - name: Upload JailRa1n IPA
         uses: actions/upload-artifact@v4
         with:
-          name: JailRa1n-iOS-App
-          path: output/JailRa1n.app/
+          name: JailRa1n-IPA
+          path: JailRa1n.ipa
           if-no-files-found: error
           retention-days: 7
