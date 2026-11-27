@@ -1163,7 +1163,10 @@ private struct JailRa1nJailbreakDashboard: View {
                 ? "[OK] iOS 16.7.x erkannt"
                 : "[INFO] Andere iOS-Version erkannt",
             "[INFO] Ergebnis: \(compatibilityText)",
-            "[INFO] Engine-Schnittstelle: vorbereitet (1.2)",
+            "[INFO] Recherche: Dopamine unterstützt iOS 16.7.x laut iOS Guide",
+            "[INFO] Alternative: palera1n (Computer erforderlich)",
+            "[INFO] Recherche ist kein Geräte- oder Exploit-Test",
+            "[INFO] Engine-Schnittstelle: vorbereitet (1.3)",
             "[INFO] Provider: \(JRJailbreakEngine.providerName)",
             "[WARN] Exploit-Engine: nicht integriert",
             "[WARN] Bootstrap: nicht integriert",
@@ -1188,7 +1191,7 @@ private struct JailRa1nJailbreakDashboard: View {
                             .font(.title.bold())
                             .foregroundColor(.white)
 
-                        Text("ENGINE-VORBEREITUNG • 1.2")
+                        Text("KOMPATIBILITÄTS-RECHERCHE • 1.3")
                             .font(.caption.monospaced())
                             .tracking(2)
                             .foregroundColor(accent)
@@ -1229,6 +1232,36 @@ private struct JailRa1nJailbreakDashboard: View {
                              + "separate Lizenz- und Integrationsprüfung.")
                             .font(.caption)
                             .foregroundColor(.gray)
+                    }
+
+                    JRCard(accent: accent) {
+                        Label("Jailbreak-Wege · Recherche", systemImage: "checkmark.shield")
+                            .font(.headline)
+                            .foregroundColor(accent)
+                        Divider()
+                        JRInfoRow(title: "Ziel", value: "iPhone X · iOS 16.7.15")
+                        JRInfoRow(title: "Dopamine", value: "Laut Anleitung unterstützt")
+                        JRInfoRow(title: "palera1n", value: "Alternative mit Computer")
+                        JRInfoRow(title: "Lokale Integration", value: "Nicht vorhanden")
+                        Text("Die angezeigte Unterstützung stammt aus externen "
+                             + "Projektanleitungen und ist kein erfolgreicher Gerätetest. "
+                             + "Dopamine ist ein eigenständiger, semi-untethered Jailbreak. "
+                             + "Bei palera1n ist für das iPhone X ein Computer nötig; "
+                             + "auf iOS 16 gelten zusätzliche Passcode-Einschränkungen.")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        Link(destination: URL(string: "https://ios.cfw.guide/installing-dopamine/")!) {
+                            Label("Dopamine-Anleitung", systemImage: "arrow.up.right.square")
+                                .foregroundColor(accent)
+                        }
+                        Link(destination: URL(string: "https://docs.palera.in/installing-palera1n/")!) {
+                            Label("palera1n-Anleitung", systemImage: "arrow.up.right.square")
+                                .foregroundColor(accent)
+                        }
+                        Text("Bitte vor einem echten Jailbreak ein Backup erstellen "
+                             + "und die Anleitung für die installierte Version prüfen.")
+                            .font(.caption)
+                            .foregroundColor(.orange)
                     }
 
                     JRCard(accent: accent) {
