@@ -15,14 +15,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Check Xcode and project
+      - name: Check Xcode version
         run: |
           xcodebuild -version
+
+      - name: Check project files
+        run: |
           test -f JailRa1n/JailRa1n.xcodeproj/project.pbxproj
           test -f JailRa1n/ContentView.swift
           test -f JailRa1n/JailRa1nApp.swift
 
-      - name: Build iOS app
+      - name: Build JailRa1n for iOS 16+
         run: |
           xcodebuild \
             -project JailRa1n/JailRa1n.xcodeproj \
@@ -30,10 +33,11 @@ jobs:
             -configuration Release \
             -sdk iphoneos \
             -derivedDataPath "$RUNNER_TEMP/JailRa1nBuild" \
+            IPHONEOS_DEPLOYMENT_TARGET=16.0 \
             CODE_SIGNING_ALLOWED=NO \
             build
 
-      - name: Configure package manager detection
+      - name: Configure Sileo and Cydia detection
         run: |
           APP_PATH="$RUNNER_TEMP/JailRa1nBuild/Build/Products/Release-iphoneos/JailRa1n.app"
           PLIST="$APP_PATH/Info.plist"
@@ -56,7 +60,22 @@ jobs:
             -c "Add :LSApplicationQueriesSchemes:1 string cydia" \
             "$PLIST"
 
-      - name: Package IPA
+      - name: Verify minimum iOS version
+        run: |
+          APP_PATH="$RUNNER_TEMP/JailRa1nBuild/Build/Products/Release-iphoneos/JailRa1n.app"
+          PLIST="$APP_PATH/Info.plist"
+
+          VERSION=$(/usr/libexec/PlistBuddy \
+            -c "Print :MinimumOSVersion" "$PLIST")
+
+          echo "Minimum supported iOS: $VERSION"
+
+          if [ "$VERSION" != "16.0" ]; then
+            echo "Unexpected minimum iOS version!"
+            exit 1
+          fi
+
+      - name: Package JailRa1n IPA
         run: |
           APP_PATH="$RUNNER_TEMP/JailRa1nBuild/Build/Products/Release-iphoneos/JailRa1n.app"
 
@@ -68,12 +87,12 @@ jobs:
           cd package
           zip -qry ../JailRa1n.ipa Payload
 
-      - name: Verify IPA structure
+      - name: Verify IPA
         run: |
           unzip -t JailRa1n.ipa
           unzip -l JailRa1n.ipa | grep 'Payload/JailRa1n.app/'
 
-      - name: Upload JailRa1n IPA
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: JailRa1n-IPA
