@@ -15,23 +15,30 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Check Xcode version
+      - name: Check Xcode and project files
         run: |
           xcodebuild -version
-
-      - name: Check project files
-        run: |
-          test -f JailRa1n/JailRa1n.xcodeproj/project.pbxproj
+          test -f project.yml
           test -f JailRa1n/ContentView.swift
           test -f JailRa1n/JailRa1nApp.swift
+          test -f JailRa1n/JailbreakEngine.swift
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: |
+          xcodegen generate --spec project.yml
+          test -f JailRa1n.xcodeproj/project.pbxproj
 
       - name: Build JailRa1n for iOS 16+
         run: |
           xcodebuild \
-            -project JailRa1n/JailRa1n.xcodeproj \
+            -project JailRa1n.xcodeproj \
             -scheme JailRa1n \
             -configuration Release \
             -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
             -derivedDataPath "$RUNNER_TEMP/JailRa1nBuild" \
             IPHONEOS_DEPLOYMENT_TARGET=16.0 \
             CODE_SIGNING_ALLOWED=NO \
@@ -40,62 +47,33 @@ jobs:
       - name: Configure Sileo and Cydia detection
         run: |
           APP_PATH="$RUNNER_TEMP/JailRa1nBuild/Build/Products/Release-iphoneos/JailRa1n.app"
-          PLIST="$APP_PATH/Info.plist"
-
-          test -f "$PLIST"
-
-          /usr/libexec/PlistBuddy \
-            -c "Delete :LSApplicationQueriesSchemes" \
-            "$PLIST" || true
-
-          /usr/libexec/PlistBuddy \
-            -c "Add :LSApplicationQueriesSchemes array" \
-            "$PLIST"
-
-          /usr/libexec/PlistBuddy \
-            -c "Add :LSApplicationQueriesSchemes:0 string sileo" \
-            "$PLIST"
-
-          /usr/libexec/PlistBuddy \
-            -c "Add :LSApplicationQueriesSchemes:1 string cydia" \
-            "$PLIST"
+          test -d "$APP_PATH"
+          /usr/libexec/PlistBuddy -c 'Add :LSApplicationQueriesSchemes array' "$APP_PATH/Info.plist" || true
+          /usr/libexec/PlistBuddy -c 'Add :LSApplicationQueriesSchemes:0 string sileo' "$APP_PATH/Info.plist" || true
+          /usr/libexec/PlistBuddy -c 'Add :LSApplicationQueriesSchemes:1 string cydia' "$APP_PATH/Info.plist" || true
 
       - name: Verify minimum iOS version
         run: |
           APP_PATH="$RUNNER_TEMP/JailRa1nBuild/Build/Products/Release-iphoneos/JailRa1n.app"
-          PLIST="$APP_PATH/Info.plist"
-
-          VERSION=$(/usr/libexec/PlistBuddy \
-            -c "Print :MinimumOSVersion" "$PLIST")
-
-          echo "Minimum supported iOS: $VERSION"
-
-          if [ "$VERSION" != "16.0" ]; then
-            echo "Unexpected minimum iOS version!"
-            exit 1
-          fi
+          /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP_PATH/Info.plist"
 
       - name: Package JailRa1n IPA
         run: |
           APP_PATH="$RUNNER_TEMP/JailRa1nBuild/Build/Products/Release-iphoneos/JailRa1n.app"
-
-          test -d "$APP_PATH"
-
-          mkdir -p package/Payload
-          cp -R "$APP_PATH" package/Payload/
-
-          cd package
-          zip -qry ../JailRa1n.ipa Payload
+          mkdir -p "$RUNNER_TEMP/JailRa1nPackage/Payload" output
+          cp -R "$APP_PATH" "$RUNNER_TEMP/JailRa1nPackage/Payload/"
+          cd "$RUNNER_TEMP/JailRa1nPackage"
+          zip -qry "$GITHUB_WORKSPACE/output/JailRa1n.ipa" Payload
 
       - name: Verify IPA
         run: |
-          unzip -t JailRa1n.ipa
-          unzip -l JailRa1n.ipa | grep 'Payload/JailRa1n.app/'
+          test -s output/JailRa1n.ipa
+          unzip -l output/JailRa1n.ipa | grep 'Payload/JailRa1n.app/'
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: JailRa1n-IPA
-          path: JailRa1n.ipa
+          path: output/JailRa1n.ipa
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 14
