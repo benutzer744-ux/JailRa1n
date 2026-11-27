@@ -803,12 +803,27 @@ struct UltimateDripView: View {
                                         .opacity(1 - splash)
                                         .offset(x: hitX + dx, y: 53 + dy)
                                 }
-                                // A small splash crown shoots upward at impact.
-                                Capsule()
-                                    .fill(accent.opacity(1 - splash))
-                                    .frame(width: 5, height: 8 + CGFloat(splash) * 25)
-                                    .shadow(color: accent, radius: 6)
-                                    .offset(x: hitX, y: 47 - CGFloat(splash) * 12)
+                                // A liquid crown grows from the impact point, opens,
+                                // and collapses while beads fly away from its rim.
+                                LiquidSplashCrown(opening: CGFloat(splash))
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [accent.opacity(0.96 * (1 - splash)),
+                                                     accent.opacity(0.42 * (1 - splash))],
+                                            startPoint: .top, endPoint: .bottom
+                                        )
+                                    )
+                                    .frame(width: 25 + CGFloat(splash) * 75,
+                                           height: 19 + CGFloat(splash) * 28)
+                                    .shadow(color: accent, radius: 12)
+                                    .offset(x: hitX, y: 53 - CGFloat(splash) * 13)
+
+                                // A bright center flash emphasizes the instant of impact.
+                                Ellipse()
+                                    .fill(accent.opacity(max(0, 1 - splash * 3)))
+                                    .frame(width: 20 + CGFloat(splash) * 28, height: 7)
+                                    .shadow(color: accent, radius: 13)
+                                    .offset(x: hitX, y: 53)
                             }
                         }
                         // Ambient concentric rings keep the pool alive.
@@ -914,5 +929,47 @@ private struct LiquidSplashSpeck: View {
             .fill(accent)
             .frame(width: size, height: size * 1.5)
             .shadow(color: accent, radius: 5)
+    }
+}
+
+
+// A curved, open liquid crown with five raised tips. The shape grows wider
+// and shallower as the splash progresses; the bottom remains in the pool.
+private struct LiquidSplashCrown: Shape {
+    var opening: CGFloat
+
+    var animatableData: CGFloat {
+        get { opening }
+        set { opening = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        let t = min(max(opening, 0), 1)
+        let bottom = rect.maxY
+        let top = rect.minY + rect.height * (0.04 + 0.48 * t)
+        let mid = rect.midY + rect.height * 0.20
+        let left = rect.minX
+        let right = rect.maxX
+        let w = rect.width
+        var p = Path()
+        p.move(to: CGPoint(x: left, y: bottom))
+        p.addQuadCurve(to: CGPoint(x: left + w * 0.06, y: top + rect.height * 0.16),
+                       control: CGPoint(x: left - w * 0.05, y: mid))
+        // Alternating raised peaks and rounded valleys form the splash rim.
+        let rim: [(CGFloat, CGFloat)] = [
+            (0.06, 0.16), (0.16, 0.02), (0.25, 0.28),
+            (0.36, 0.08), (0.50, 0.31), (0.64, 0.08),
+            (0.75, 0.28), (0.84, 0.02), (0.94, 0.16)
+        ]
+        for (x, y) in rim {
+            p.addLine(to: CGPoint(x: left + w * x,
+                                  y: top + rect.height * y * (1 - 0.35 * t)))
+        }
+        p.addQuadCurve(to: CGPoint(x: right, y: bottom),
+                       control: CGPoint(x: right + w * 0.05, y: mid))
+        p.addQuadCurve(to: CGPoint(x: left, y: bottom),
+                       control: CGPoint(x: rect.midX, y: bottom - rect.height * 0.22))
+        p.closeSubpath()
+        return p
     }
 }
