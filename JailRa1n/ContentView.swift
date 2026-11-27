@@ -271,7 +271,7 @@ struct ContentView: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("JailRa1n").font(.headline).foregroundColor(.white)
-                Text("Version 1.1").font(.caption).foregroundColor(.gray)
+                Text("Version 1.2").font(.caption).foregroundColor(.gray)
             }
             Spacer()
             Button { showSettings = true } label: {
@@ -397,7 +397,7 @@ struct ContentView: View {
 
     private var footer: some View {
         VStack(spacing: 5) {
-            Text("JailRa1n • Version 1.1").foregroundColor(accent)
+            Text("JailRa1n • Version 1.2").foregroundColor(accent)
             Text("Sileo & Cydia Preview • No Exploit")
                 .foregroundColor(.gray)
         }
@@ -1163,6 +1163,8 @@ private struct JailRa1nJailbreakDashboard: View {
                 ? "[OK] iOS 16.7.x erkannt"
                 : "[INFO] Andere iOS-Version erkannt",
             "[INFO] Ergebnis: \(compatibilityText)",
+            "[INFO] Engine-Schnittstelle: vorbereitet (1.2)",
+            "[INFO] Provider: \(JRJailbreakEngine.providerName)",
             "[WARN] Exploit-Engine: nicht integriert",
             "[WARN] Bootstrap: nicht integriert",
             "[WARN] Sileo-Installation: nicht verfügbar",
@@ -1186,7 +1188,7 @@ private struct JailRa1nJailbreakDashboard: View {
                             .font(.title.bold())
                             .foregroundColor(.white)
 
-                        Text("ENGINE-VORBEREITUNG • 1.1")
+                        Text("ENGINE-VORBEREITUNG • 1.2")
                             .font(.caption.monospaced())
                             .tracking(2)
                             .foregroundColor(accent)
@@ -1225,6 +1227,24 @@ private struct JailRa1nJailbreakDashboard: View {
                         Text("JailRa1n ist ein unabhängiges Projekt. Die technische "
                              + "Verwendung externer Komponenten erfordert eine "
                              + "separate Lizenz- und Integrationsprüfung.")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+
+                    JRCard(accent: accent) {
+                        Label("Engine-Schnittstelle", systemImage: "cpu")
+                            .font(.headline)
+                            .foregroundColor(accent)
+                        Divider()
+                        JRInfoRow(title: "Provider", value: JRJailbreakEngine.providerName)
+                        JRInfoRow(title: "Schnittstelle", value: "Vorbereitet")
+                        JRInfoRow(title: "Native Implementierung", value: "Fehlt")
+                        JRInfoRow(title: "Jailbreak-Start", value: "Gesperrt")
+                        JRInfoRow(title: "Sileo-Setup", value: "Gesperrt")
+                        Text("Die Schnittstelle führt keine Exploits aus. "
+                             + "Dopamine ist nicht in dieser App enthalten. "
+                             + "Eine echte Integration benötigt native "
+                             + "Komponenten, Lizenzprüfung und Gerätetests.")
                             .font(.caption)
                             .foregroundColor(.gray)
                     }
@@ -1326,4 +1346,12 @@ private struct JailRa1nJailbreakDashboard: View {
         }
         .preferredColorScheme(.dark)
     }
+}
+
+
+// MARK: - Engine-Schnittstelle (Platzhalter ohne Exploit)
+// Die Integration einer echten Engine erfolgt in einer späteren Version.
+private enum JRJailbreakEngine {
+    static let providerName = "Kein Provider"
+    static let isAvailable = false
 }
