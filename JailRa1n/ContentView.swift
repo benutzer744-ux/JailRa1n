@@ -35,6 +35,8 @@ enum JailRa1nTheme: String, CaseIterable, Identifiable {
 private enum JRLanguage {
     static func text(_ key: String, _ lang: String) -> String {
         let translations: [String: [String: String]] = [
+            "Supported iOS Versions": ["de":"Unterstützte iOS-Versionen","fr":"Versions iOS prises en charge","es":"Versiones de iOS compatibles","it":"Versioni iOS supportate"],
+            "Supported Versions Note": ["de":"Angezeigter Zielbereich der App-Oberfläche. Ein Jailbreak ist derzeit nicht integriert; die tatsächliche Kompatibilität hängt vom Gerät und der iOS-Version ab.","fr":"Plage de versions prévue pour l’interface. Aucun jailbreak n’est intégré actuellement.","es":"Rango previsto para la interfaz. Actualmente no incluye un jailbreak.","it":"Intervallo previsto per l’interfaccia. Nessun jailbreak è attualmente integrato."],
             "Settings": ["de":"Einstellungen","fr":"Réglages","es":"Ajustes","it":"Impostazioni"],
             "Done": ["de":"Fertig","fr":"Terminé","es":"Listo","it":"Fine"],
             "Bootstrap Manager": ["de":"Bootstrap-Manager","fr":"Gestionnaire Bootstrap","es":"Gestor Bootstrap","it":"Gestore Bootstrap"],
@@ -185,6 +187,7 @@ struct ContentView: View {
                     logo
                     titleSection
                     deviceCard
+                    supportedVersionsCard
                     engineCard
                     JRActionButton(
                         title: JRLanguage.text("Bootstrap Manager", appLanguage),
@@ -323,6 +326,29 @@ struct ContentView: View {
             JRInfoRow(title: JRLanguage.text("iPhone Model", appLanguage), value: JailRa1nDevice.identifier)
             JRInfoRow(title: JRLanguage.text("iOS Version", appLanguage), value: JailRa1nDevice.iosVersion)
             JRInfoRow(title: "Jailbreak", value: JRLanguage.text("Not Verified", appLanguage))
+        }
+    }
+
+    private var supportedVersionsCard: some View {
+        JRCard(accent: accent) {
+            Label(JRLanguage.text("Supported iOS Versions", appLanguage),
+                  systemImage: "checkmark.shield.fill")
+                .font(.headline)
+                .foregroundColor(accent)
+
+            Divider()
+
+            Text("iOS 16.0 – iOS 27.0.1")
+                .font(.system(size: 23, weight: .bold, design: .rounded))
+                .foregroundColor(accent)
+                .frame(maxWidth: .infinity)
+                .minimumScaleFactor(0.7)
+                .lineLimit(1)
+
+            Text(JRLanguage.text("Supported Versions Note", appLanguage))
+                .font(.caption)
+                .foregroundColor(.gray)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
