@@ -1168,7 +1168,7 @@ private struct JailRa1nJailbreakDashboard: View {
             "[INFO] Recherche: Dopamine unterstützt iOS 16.7.x laut iOS Guide",
             "[INFO] Alternative: palera1n (Computer erforderlich)",
             "[INFO] Recherche ist kein Geräte- oder Exploit-Test",
-            "[INFO] Engine-Schnittstelle: vorbereitet (1.4)",
+            "[INFO] Engine-Schnittstelle: vorbereitet (1.5)",
             "[INFO] Provider: \(JRJailbreakEngine.providerName)",
             "[WARN] Exploit-Engine: nicht integriert",
             "[WARN] Bootstrap: nicht integriert",
@@ -1274,10 +1274,11 @@ private struct JailRa1nJailbreakDashboard: View {
                         JRInfoRow(title: "Provider", value: JRJailbreakEngine.providerName)
                         JRInfoRow(title: "Schnittstelle", value: "v\(JRJailbreakEngine.interfaceVersion)")
                         JRInfoRow(title: "Geräte-Readiness", value: engineReport.readiness.rawValue)
+                        JRInfoRow(title: "Adapter", value: engineReport.adapterStatus)
                         JRInfoRow(title: "Native Implementierung", value: "Fehlt")
                         JRInfoRow(title: "Jailbreak-Start", value: "Gesperrt")
                         JRInfoRow(title: "Sileo-Setup", value: "Gesperrt")
-                        Text("Engine-Diagnose (ohne Systemzugriff)")
+                        Text("Engine-Diagnose 1.5 (ohne Systemzugriff)")
                             .font(.caption.bold())
                             .foregroundColor(accent)
                         ForEach(engineReport.lines, id: \.self) { line in
