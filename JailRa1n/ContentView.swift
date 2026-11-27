@@ -1165,11 +1165,12 @@ private struct JailRa1nJailbreakDashboard: View {
                 ? "[OK] iOS 16.7.x erkannt"
                 : "[INFO] Andere iOS-Version erkannt",
             "[INFO] Ergebnis: \(compatibilityText)",
-            "[INFO] Recherche: Dopamine unterstützt iOS 16.7.x laut iOS Guide",
+            "[INFO] Dopamine-Kompatibilität muss offiziell geprüft werden",
             "[INFO] Alternative: palera1n (Computer erforderlich)",
             "[INFO] Recherche ist kein Geräte- oder Exploit-Test",
-            "[INFO] Engine-Schnittstelle: vorbereitet (1.5)",
+            "[INFO] Engine-Schnittstelle: vorbereitet (1.6)",
             "[INFO] Provider: \(JRJailbreakEngine.providerName)",
+            "[INFO] Checkliste: \(engineReport.passedChecks)/\(engineReport.checks.count)",
             "[WARN] Exploit-Engine: nicht integriert",
             "[WARN] Bootstrap: nicht integriert",
             "[WARN] Sileo-Installation: nicht verfügbar",
@@ -1193,7 +1194,7 @@ private struct JailRa1nJailbreakDashboard: View {
                             .font(.title.bold())
                             .foregroundColor(.white)
 
-                        Text("NATIVE ENGINE ARCHITEKTUR • 1.4")
+                        Text("PROVIDER & DIAGNOSTICS • 1.6")
                             .font(.caption.monospaced())
                             .tracking(2)
                             .foregroundColor(accent)
@@ -1242,12 +1243,12 @@ private struct JailRa1nJailbreakDashboard: View {
                             .foregroundColor(accent)
                         Divider()
                         JRInfoRow(title: "Ziel", value: "iPhone X · iOS 16.7.15")
-                        JRInfoRow(title: "Dopamine", value: "Laut Anleitung unterstützt")
+                        JRInfoRow(title: "Dopamine", value: "Kompatibilität prüfen")
                         JRInfoRow(title: "palera1n", value: "Alternative mit Computer")
                         JRInfoRow(title: "Lokale Integration", value: "Nicht vorhanden")
-                        Text("Die angezeigte Unterstützung stammt aus externen "
-                             + "Projektanleitungen und ist kein erfolgreicher Gerätetest. "
-                             + "Dopamine ist ein eigenständiger, semi-untethered Jailbreak. "
+                        Text("Die genaue Geräte- und Versionsunterstützung muss anhand "
+                             + "offizieller Projektangaben geprüft werden. "
+                             + "Dopamine ist ein eigenständiges Jailbreak-Projekt. "
                              + "Bei palera1n ist für das iPhone X ein Computer nötig; "
                              + "auf iOS 16 gelten zusätzliche Passcode-Einschränkungen.")
                             .font(.caption)
@@ -1275,13 +1276,14 @@ private struct JailRa1nJailbreakDashboard: View {
                         JRInfoRow(title: "Schnittstelle", value: "v\(JRJailbreakEngine.interfaceVersion)")
                         JRInfoRow(title: "Geräte-Readiness", value: engineReport.readiness.rawValue)
                         JRInfoRow(title: "Adapter", value: engineReport.adapterStatus)
+                        JRInfoRow(title: "Prüfungen erfüllt", value: "\(engineReport.passedChecks)/\(engineReport.checks.count)")
                         JRInfoRow(title: "Native Implementierung", value: "Fehlt")
                         JRInfoRow(title: "Jailbreak-Start", value: "Gesperrt")
                         JRInfoRow(title: "Sileo-Setup", value: "Gesperrt")
-                        Text("Engine-Diagnose 1.5 (ohne Systemzugriff)")
+                        Text("Engine-Diagnose 1.6 (ohne Systemzugriff)")
                             .font(.caption.bold())
                             .foregroundColor(accent)
-                        ForEach(engineReport.lines, id: \.self) { line in
+                        ForEach(Array(engineReport.lines.enumerated()), id: \.offset) { _, line in
                             Text(line)
                                 .font(.system(size: 11, design: .monospaced))
                                 .foregroundColor(.gray)
@@ -1291,6 +1293,43 @@ private struct JailRa1nJailbreakDashboard: View {
                              + "Dopamine ist nicht in dieser App enthalten. "
                              + "Eine echte Integration benötigt native "
                              + "Komponenten, Lizenzprüfung und Gerätetests.")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+
+                    JRCard(accent: accent) {
+                        Label("Provider-Checkliste", systemImage: "checklist")
+                            .font(.headline)
+                            .foregroundColor(accent)
+                        Divider()
+                        Text("\(engineReport.passedChecks) von \(engineReport.checks.count) Prüfungen erfüllt")
+                            .font(.subheadline.bold())
+                            .foregroundColor(.white)
+                        ProgressView(value: Double(engineReport.passedChecks),
+                                     total: Double(engineReport.checks.count))
+                            .tint(accent)
+                        ForEach(engineReport.checks) { item in
+                            HStack(alignment: .top, spacing: 10) {
+                                Image(systemName: item.status == .passed
+                                      ? "checkmark.circle.fill"
+                                      : item.status == .pending
+                                      ? "clock.fill" : "xmark.circle.fill")
+                                    .foregroundColor(item.status == .passed ? accent : .orange)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(item.title)
+                                        .foregroundColor(.white)
+                                        .font(.subheadline.bold())
+                                    Text(item.detail)
+                                        .foregroundColor(.gray)
+                                        .font(.caption)
+                                }
+                                Spacer(minLength: 6)
+                                Text(item.status.rawValue)
+                                    .foregroundColor(.gray)
+                                    .font(.caption)
+                            }
+                        }
+                        Text("Die Checkliste prüft nur bekannte Informationen und vorhandene App-Komponenten. Sie beweist keine Jailbreak-Kompatibilität.")
                             .font(.caption)
                             .foregroundColor(.gray)
                     }
@@ -1369,7 +1408,7 @@ private struct JailRa1nJailbreakDashboard: View {
                             .foregroundColor(accent)
                         }
 
-                        ForEach(diagnosticLog, id: \.self) { line in
+                        ForEach(Array(diagnosticLog.enumerated()), id: \.offset) { _, line in
                             Text(line)
                                 .font(.system(size: 12, design: .monospaced))
                                 .foregroundColor(line.contains("[WARN]")
