@@ -1120,14 +1120,15 @@ private struct JailRa1nJailbreakDashboard: View {
     @Environment(\.dismiss) private var dismiss
     @State private var checked = false
 
-    private var isTargetDevice: Bool {
-        JailRa1nDevice.identifier == "iPhone10,3" ||
-        JailRa1nDevice.identifier == "iPhone10,6"
+    private var engineReport: JRJailbreakEngine.Report {
+        JRJailbreakEngine.diagnose(
+            deviceIdentifier: JailRa1nDevice.identifier,
+            iosVersion: JailRa1nDevice.iosVersion
+        )
     }
 
-    private var isTargetOS: Bool {
-        JailRa1nDevice.iosVersion.hasPrefix("16.7.")
-    }
+    private var isTargetDevice: Bool { engineReport.targetDevice }
+    private var isTargetOS: Bool { engineReport.targetOS }
 
     private var compatibilityText: String {
         if isTargetDevice && isTargetOS {
@@ -1154,6 +1155,7 @@ private struct JailRa1nJailbreakDashboard: View {
         }
         return [
             "[INFO] Geräteprüfung gestartet",
+            "[INFO] Engine-Readiness: \(engineReport.readiness.rawValue)",
             "[INFO] Modell: \(JailRa1nDevice.identifier)",
             "[INFO] iOS: \(JailRa1nDevice.iosVersion)",
             isTargetDevice
@@ -1166,7 +1168,7 @@ private struct JailRa1nJailbreakDashboard: View {
             "[INFO] Recherche: Dopamine unterstützt iOS 16.7.x laut iOS Guide",
             "[INFO] Alternative: palera1n (Computer erforderlich)",
             "[INFO] Recherche ist kein Geräte- oder Exploit-Test",
-            "[INFO] Engine-Schnittstelle: vorbereitet (1.3)",
+            "[INFO] Engine-Schnittstelle: vorbereitet (1.4)",
             "[INFO] Provider: \(JRJailbreakEngine.providerName)",
             "[WARN] Exploit-Engine: nicht integriert",
             "[WARN] Bootstrap: nicht integriert",
@@ -1191,7 +1193,7 @@ private struct JailRa1nJailbreakDashboard: View {
                             .font(.title.bold())
                             .foregroundColor(.white)
 
-                        Text("KOMPATIBILITÄTS-RECHERCHE • 1.3")
+                        Text("NATIVE ENGINE ARCHITEKTUR • 1.4")
                             .font(.caption.monospaced())
                             .tracking(2)
                             .foregroundColor(accent)
@@ -1270,10 +1272,20 @@ private struct JailRa1nJailbreakDashboard: View {
                             .foregroundColor(accent)
                         Divider()
                         JRInfoRow(title: "Provider", value: JRJailbreakEngine.providerName)
-                        JRInfoRow(title: "Schnittstelle", value: "Vorbereitet")
+                        JRInfoRow(title: "Schnittstelle", value: "v\(JRJailbreakEngine.interfaceVersion)")
+                        JRInfoRow(title: "Geräte-Readiness", value: engineReport.readiness.rawValue)
                         JRInfoRow(title: "Native Implementierung", value: "Fehlt")
                         JRInfoRow(title: "Jailbreak-Start", value: "Gesperrt")
                         JRInfoRow(title: "Sileo-Setup", value: "Gesperrt")
+                        Text("Engine-Diagnose (ohne Systemzugriff)")
+                            .font(.caption.bold())
+                            .foregroundColor(accent)
+                        ForEach(engineReport.lines, id: \.self) { line in
+                            Text(line)
+                                .font(.system(size: 11, design: .monospaced))
+                                .foregroundColor(.gray)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                         Text("Die Schnittstelle führt keine Exploits aus. "
                              + "Dopamine ist nicht in dieser App enthalten. "
                              + "Eine echte Integration benötigt native "
@@ -1379,12 +1391,4 @@ private struct JailRa1nJailbreakDashboard: View {
         }
         .preferredColorScheme(.dark)
     }
-}
-
-
-// MARK: - Engine-Schnittstelle (Platzhalter ohne Exploit)
-// Die Integration einer echten Engine erfolgt in einer späteren Version.
-private enum JRJailbreakEngine {
-    static let providerName = "Kein Provider"
-    static let isAvailable = false
 }
