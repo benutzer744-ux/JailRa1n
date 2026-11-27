@@ -167,6 +167,7 @@ struct ContentView: View {
     @State private var pulsing = false
     @State private var showSettings = false
     @State private var showBootstrap = false
+    @State private var showJailbreakDashboard = false
     @State private var deviceChecked = false
     @State private var showDrip = false
     @State private var pendingDrip = false
@@ -190,6 +191,13 @@ struct ContentView: View {
                     supportedVersionsCard
                     engineCard
                     JRActionButton(
+                        title: "Jailbreak-Zentrale öffnen",
+                        symbol: "lock.shield",
+                        accent: accent
+                    ) {
+                        showJailbreakDashboard = true
+                    }
+                    JRActionButton(
                         title: JRLanguage.text("Bootstrap Manager", appLanguage),
                         symbol: "shippingbox.fill",
                         accent: accent
@@ -211,6 +219,11 @@ struct ContentView: View {
             }
         }) {
             settingsView
+        }
+        .sheet(isPresented: $showJailbreakDashboard) {
+            NavigationStack {
+                JailRa1nJailbreakDashboard(accent: accent)
+            }
         }
         .sheet(isPresented: $showBootstrap) {
             NavigationStack {
@@ -235,7 +248,7 @@ struct ContentView: View {
             NavigationStack {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("[INFO] JailRa1n 0.9 started")
+                        Text("[INFO] JailRa1n 1.0 started")
                         Text("[INFO] iOS: \(JailRa1nDevice.iosVersion)")
                         Text("[INFO] Device: \(JailRa1nDevice.identifier)")
                         Text("[WARN] No bootstrap engine configured")
@@ -258,7 +271,7 @@ struct ContentView: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("JailRa1n").font(.headline).foregroundColor(.white)
-                Text("Version 0.9").font(.caption).foregroundColor(.gray)
+                Text("Version 1.0").font(.caption).foregroundColor(.gray)
             }
             Spacer()
             Button { showSettings = true } label: {
@@ -310,7 +323,7 @@ struct ContentView: View {
             Text("Sileo & Cydia Edition")
                 .font(.subheadline)
                 .foregroundColor(.gray)
-            Text("INTERFACE PREVIEW 0.9")
+            Text("INTERFACE PREVIEW 1.0")
                 .font(.system(size: 11, weight: .semibold, design: .monospaced))
                 .tracking(2)
                 .foregroundColor(accent)
@@ -384,7 +397,7 @@ struct ContentView: View {
 
     private var footer: some View {
         VStack(spacing: 5) {
-            Text("JailRa1n • Version 0.9").foregroundColor(accent)
+            Text("JailRa1n • Version 1.0").foregroundColor(accent)
             Text("Sileo & Cydia Preview • No Exploit")
                 .foregroundColor(.gray)
         }
@@ -562,7 +575,7 @@ struct BootstrapView: View {
     @State private var compatibilityChecked = false
     @State private var installerChecked = false
     @State private var logs: [String] = [
-        "[INFO] JailRa1n 0.9 initialized",
+        "[INFO] JailRa1n 1.0 initialized",
         "[INFO] App sandbox available",
         "[WARN] No bootstrap engine configured"
     ]
@@ -582,7 +595,7 @@ struct BootstrapView: View {
                 Text(JRLanguage.text("Bootstrap Manager", appLanguage))
                     .font(.title.bold())
                     .foregroundColor(accent)
-                Text("JailRa1n 0.9 • Sileo & Cydia Manager")
+                Text("JailRa1n 1.0 • Sileo & Cydia Manager")
                     .font(.caption)
                     .foregroundColor(.gray)
                 statusCard
@@ -1094,6 +1107,185 @@ struct JailRa1nCreditsView: View {
         .background(Color.black)
         .navigationTitle("Open Source & Credits")
         .navigationBarTitleDisplayMode(.inline)
+        .preferredColorScheme(.dark)
+    }
+}
+
+
+// MARK: - Jailbreak Dashboard (diagnostics only, no exploit)
+
+private struct JailRa1nJailbreakDashboard: View {
+    let accent: Color
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var checked = false
+    @State private var showTechnicalInfo = false
+
+    private var isTargetDevice: Bool {
+        JailRa1nDevice.identifier == "iPhone10,3" ||
+        JailRa1nDevice.identifier == "iPhone10,6"
+    }
+
+    private var isTargetOS: Bool {
+        JailRa1nDevice.iosVersion.hasPrefix("16.7.")
+    }
+
+    private var diagnosticProgress: Double {
+        checked ? 1.0 : 0.0
+    }
+
+    private var diagnosticLog: [String] {
+        guard checked else {
+            return ["[INFO] Diagnose noch nicht gestartet.",
+                    "[INFO] Keine Jailbreak-Engine eingebunden."]
+        }
+        return [
+            "[INFO] Geräteprüfung gestartet",
+            "[INFO] Modell: \(JailRa1nDevice.identifier)",
+            "[INFO] iOS: \(JailRa1nDevice.iosVersion)",
+            isTargetDevice
+                ? "[OK] iPhone X als Forschungsziel erkannt"
+                : "[INFO] Gerät ist nicht das iPhone-X-Zielgerät",
+            isTargetOS
+                ? "[OK] iOS 16.7.x erkannt"
+                : "[INFO] Andere iOS-Version erkannt",
+            "[WARN] Exploit-Engine: nicht integriert",
+            "[WARN] Bootstrap: nicht integriert",
+            "[WARN] Sileo-Installation: nicht verfügbar",
+            "[INFO] Diagnose abgeschlossen; kein Jailbreak ausgeführt"
+        ]
+    }
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    VStack(spacing: 8) {
+                        Image(systemName: "lock.shield.fill")
+                            .font(.system(size: 54))
+                            .foregroundColor(accent)
+                            .shadow(color: accent.opacity(0.5), radius: 18)
+
+                        Text("JailRa1n Jailbreak")
+                            .font(.title.bold())
+                            .foregroundColor(.white)
+
+                        Text("ENGINE-VORBEREITUNG • 1.0")
+                            .font(.caption.monospaced())
+                            .tracking(2)
+                            .foregroundColor(accent)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+
+                    JRCard(accent: accent) {
+                        Label("Gerätekompatibilität", systemImage: "iphone")
+                            .font(.headline)
+                            .foregroundColor(accent)
+                        Divider()
+                        JRInfoRow(title: "Gerät", value: JailRa1nDevice.identifier)
+                        JRInfoRow(title: "iOS", value: JailRa1nDevice.iosVersion)
+                        JRInfoRow(title: "Forschungsziel", value: "iPhone X · iOS 16.7.x")
+                        JRInfoRow(title: "Engine", value: "Nicht integriert")
+                    }
+
+                    JRCard(accent: accent) {
+                        Label("Fortschritt der Geräteprüfung",
+                              systemImage: "waveform.path.ecg")
+                            .font(.headline)
+                            .foregroundColor(accent)
+
+                        ProgressView(value: diagnosticProgress)
+                            .tint(accent)
+
+                        Text(checked
+                             ? "Geräteprüfung abgeschlossen (kein Jailbreak)."
+                             : "Geräteprüfung noch nicht ausgeführt.")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+
+                        JRActionButton(
+                            title: checked ? "Erneut prüfen" : "Gerät jetzt prüfen",
+                            symbol: "checkmark.shield",
+                            accent: accent
+                        ) {
+                            checked = true
+                        }
+                    }
+
+                    JRCard(accent: accent) {
+                        Label("Jailbreak starten",
+                              systemImage: "lock.open.fill")
+                            .font(.headline)
+                            .foregroundColor(accent)
+
+                        Button(action: {}) {
+                            Label("Jailbreak starten – nicht verfügbar",
+                                  systemImage: "lock.fill")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(15)
+                        }
+                        .disabled(true)
+                        .background(Color.gray.opacity(0.2),
+                                    in: RoundedRectangle(cornerRadius: 14))
+
+                        Text("Der Button bleibt gesperrt, bis eine geeignete "
+                             + "Jailbreak-Engine rechtmäßig integriert und "
+                             + "auf dem Zielgerät getestet wurde.")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+
+                    JRCard(accent: accent) {
+                        Label("Sileo-Installation", systemImage: "shippingbox.fill")
+                            .font(.headline)
+                            .foregroundColor(accent)
+                        JRInfoRow(title: "Bootstrap", value: "Nicht eingerichtet")
+                        JRInfoRow(title: "Sileo", value: "Installation gesperrt")
+                        Text("Eine Sileo-Installation ist erst nach einem "
+                             + "funktionierenden Jailbreak und Bootstrap möglich.")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+
+                    JRCard(accent: accent) {
+                        HStack {
+                            Label("Diagnoseprotokoll", systemImage: "terminal")
+                                .font(.headline)
+                                .foregroundColor(accent)
+                            Spacer()
+                            Button("Kopieren") {
+                                UIPasteboard.general.string =
+                                    diagnosticLog.joined(separator: "\n")
+                            }
+                            .font(.caption)
+                            .foregroundColor(accent)
+                        }
+
+                        ForEach(diagnosticLog, id: \.self) { line in
+                            Text(line)
+                                .font(.system(size: 12, design: .monospaced))
+                                .foregroundColor(line.contains("[WARN]")
+                                                 ? .orange : .gray)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                .padding(20)
+            }
+        }
+        .navigationTitle("Jailbreak-Zentrale")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Fertig") { dismiss() }
+                    .tint(accent)
+            }
+        }
         .preferredColorScheme(.dark)
     }
 }
