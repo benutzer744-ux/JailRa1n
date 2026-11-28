@@ -168,6 +168,7 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var showBootstrap = false
     @State private var showJailbreakDashboard = false
+    @State private var showLiveDiagnostics = false
     @State private var deviceChecked = false
     @State private var showDrip = false
     @State private var pendingDrip = false
@@ -190,6 +191,13 @@ struct ContentView: View {
                     deviceCard
                     supportedVersionsCard
                     engineCard
+                    JRActionButton(
+                        title: "Live-Diagnose 1.9",
+                        symbol: "waveform.path.ecg",
+                        accent: accent
+                    ) {
+                        showLiveDiagnostics = true
+                    }
                     JRActionButton(
                         title: "Jailbreak-Zentrale öffnen",
                         symbol: "lock.shield",
@@ -219,6 +227,9 @@ struct ContentView: View {
             }
         }) {
             settingsView
+        }
+        .sheet(isPresented: $showLiveDiagnostics) {
+            JRLiveDiagnosticsView()
         }
         .sheet(isPresented: $showJailbreakDashboard) {
             NavigationStack {
@@ -271,7 +282,7 @@ struct ContentView: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("JailRa1n").font(.headline).foregroundColor(.white)
-                Text("Version 1.2").font(.caption).foregroundColor(.gray)
+                Text("Version 1.9").font(.caption).foregroundColor(.gray)
             }
             Spacer()
             Button { showSettings = true } label: {
