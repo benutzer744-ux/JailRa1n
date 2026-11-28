@@ -1280,15 +1280,11 @@ private struct JailRa1nJailbreakDashboard: View {
                         JRInfoRow(title: "Native Implementierung", value: "Fehlt")
                         JRInfoRow(title: "Jailbreak-Start", value: "Gesperrt")
                         JRInfoRow(title: "Sileo-Setup", value: "Gesperrt")
-                        Text("Engine-Diagnose 1.6 (ohne Systemzugriff)")
-                            .font(.caption.bold())
-                            .foregroundColor(accent)
-                        ForEach(Array(engineReport.lines.enumerated()), id: \.offset) { _, line in
-                            Text(line)
-                                .font(.system(size: 11, design: .monospaced))
-                                .foregroundColor(.gray)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
+                        JRNeonTerminal(
+                            title: "ENGINE-DIAGNOSE 1.7",
+                            lines: engineReport.lines,
+                            accent: Color(red: 0.45, green: 1.0, blue: 0.0)
+                        )
                         Text("Die Schnittstelle führt keine Exploits aus. "
                              + "Dopamine ist nicht in dieser App enthalten. "
                              + "Eine echte Integration benötigt native "
@@ -1408,14 +1404,11 @@ private struct JailRa1nJailbreakDashboard: View {
                             .foregroundColor(accent)
                         }
 
-                        ForEach(Array(diagnosticLog.enumerated()), id: \.offset) { _, line in
-                            Text(line)
-                                .font(.system(size: 12, design: .monospaced))
-                                .foregroundColor(line.contains("[WARN]")
-                                                 ? .orange : .gray)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+                        JRNeonTerminal(
+                            title: "SYSTEM LOG",
+                            lines: diagnosticLog,
+                            accent: Color(red: 0.45, green: 1.0, blue: 0.0)
+                        )
                     }
                 }
                 .padding(20)
@@ -1430,5 +1423,85 @@ private struct JailRa1nJailbreakDashboard: View {
             }
         }
         .preferredColorScheme(.dark)
+    }
+}
+
+
+// MARK: - Animated neon terminal (display-only)
+private struct JRNeonTerminal: View {
+    let title: String
+    let lines: [String]
+    let accent: Color
+
+    @State private var visibleText = ""
+    @State private var replayID = 0
+    @State private var cursorVisible = true
+
+    private var fullText: String { lines.joined(separator: "\n") }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Circle().fill(accent).frame(width: 7, height: 7)
+                    .shadow(color: accent.opacity(0.9), radius: 5)
+                Text(title)
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .tracking(1.5)
+                Spacer()
+                Button {
+                    replayID += 1
+                } label: {
+                    Label("Replay", systemImage: "arrow.clockwise")
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                }
+                .accessibilityLabel("Terminal-Animation erneut starten")
+            }
+            .foregroundColor(accent)
+
+            Rectangle().fill(accent.opacity(0.35)).frame(height: 1)
+
+            ScrollViewReader { proxy in
+                ScrollView(.vertical) {
+                    Text(visibleText + (cursorVisible ? "█" : " "))
+                        .font(.system(size: 12, weight: .medium, design: .monospaced))
+                        .foregroundColor(accent)
+                        .shadow(color: accent.opacity(0.45), radius: 3)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+                        .id("terminalBottom")
+                }
+                .frame(height: 230)
+                .onChange(of: visibleText) { _ in
+                    proxy.scrollTo("terminalBottom", anchor: .bottom)
+                }
+            }
+            Text("● READ ONLY  /  KEIN SYSTEMZUGRIFF")
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundColor(accent.opacity(0.65))
+        }
+        .padding(14)
+        .background(Color.black)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(accent.opacity(0.65), lineWidth: 1)
+        )
+        .cornerRadius(12)
+        .task(id: replayID) {
+            visibleText = ""
+            let characters = Array(fullText)
+            var position = 0
+            while position < characters.count {
+                if Task.isCancelled { return }
+                position = min(position + 5, characters.count)
+                visibleText = String(characters.prefix(position))
+                try? await Task.sleep(nanoseconds: 30_000_000)
+            }
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) {
+                cursorVisible = false
+            }
+        }
     }
 }
