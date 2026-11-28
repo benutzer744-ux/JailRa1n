@@ -63,10 +63,9 @@ final class JRNativeEngineBridge {
     private static func hardwareIdentifier() -> String {
         var info = utsname()
         uname(&info)
-        return withUnsafePointer(to: &info.machine) { pointer in
-            pointer.withMemoryRebound(to: CChar.self, capacity: MemoryLayout.size(ofValue: info.machine)) {
-                String(cString: $0)
-            }
+        var machine = info.machine
+        return withUnsafeBytes(of: &machine) { bytes in
+            String(decoding: bytes.prefix(while: { $0 != 0 }), as: UTF8.self)
         }
     }
 }
