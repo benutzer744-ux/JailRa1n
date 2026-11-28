@@ -1427,7 +1427,7 @@ private struct JailRa1nJailbreakDashboard: View {
 }
 
 
-// MARK: - Animated neon terminal (display-only)
+// MARK: - Stable neon terminal (display-only)
 private struct JRNeonTerminal: View {
     let title: String
     let lines: [String]
@@ -1435,7 +1435,7 @@ private struct JRNeonTerminal: View {
 
     @State private var visibleText = ""
     @State private var replayID = 0
-    @State private var cursorVisible = true
+    @State private var scrollTick = 0
 
     private var fullText: String { lines.joined(separator: "\n") }
 
@@ -1443,14 +1443,11 @@ private struct JRNeonTerminal: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Circle().fill(accent).frame(width: 7, height: 7)
-                    .shadow(color: accent.opacity(0.9), radius: 5)
                 Text(title)
                     .font(.system(size: 11, weight: .bold, design: .monospaced))
                     .tracking(1.5)
                 Spacer()
-                Button {
-                    replayID += 1
-                } label: {
+                Button { replayID += 1 } label: {
                     Label("Replay", systemImage: "arrow.clockwise")
                         .font(.system(size: 11, weight: .medium, design: .monospaced))
                 }
@@ -1462,20 +1459,25 @@ private struct JRNeonTerminal: View {
 
             ScrollViewReader { proxy in
                 ScrollView(.vertical) {
-                    Text(visibleText + (cursorVisible ? "█" : " "))
-                        .font(.system(size: 12, weight: .medium, design: .monospaced))
-                        .foregroundColor(accent)
-                        .shadow(color: accent.opacity(0.45), radius: 3)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .textSelection(.enabled)
-                        .id("terminalBottom")
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(visibleText)
+                            .font(.system(size: 12, weight: .medium, design: .monospaced))
+                            .foregroundColor(accent)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .textSelection(.enabled)
+                        Color.clear.frame(height: 1).id("terminalBottom")
+                    }
                 }
                 .frame(height: 230)
-                .onChange(of: visibleText) { _ in
+                .transaction { transaction in
+                    transaction.animation = nil
+                }
+                .onChange(of: scrollTick) { _ in
                     proxy.scrollTo("terminalBottom", anchor: .bottom)
                 }
             }
+
             Text("● READ ONLY  /  KEIN SYSTEMZUGRIFF")
                 .font(.system(size: 9, design: .monospaced))
                 .foregroundColor(accent.opacity(0.65))
@@ -1489,18 +1491,24 @@ private struct JRNeonTerminal: View {
         .cornerRadius(12)
         .task(id: replayID) {
             visibleText = ""
+            scrollTick = 0
             let characters = Array(fullText)
             var position = 0
+            var steps = 0
             while position < characters.count {
                 if Task.isCancelled { return }
-                position = min(position + 5, characters.count)
+                position = min(position + 12, characters.count)
                 visibleText = String(characters.prefix(position))
-                try? await Task.sleep(nanoseconds: 30_000_000)
-            }
-        }
-        .onAppear {
-            withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) {
-                cursorVisible = false
+                steps += 1
+                // Scroll less often to avoid continuous layout jumps.
+                if steps % 5 == 0 || position == characters.count {
+                    scrollTick += 1
+                }
+                do {
+                    try await Task.sleep(nanoseconds: 65_000_000)
+                } catch {
+                    return
+                }
             }
         }
     }
