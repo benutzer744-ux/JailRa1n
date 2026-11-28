@@ -2,7 +2,8 @@ import SwiftUI
 import UIKit
 import Darwin
 
-// JailRa1n 2.1: read-only UI. No jailbreak exploit or bootstrap installer included.
+// JailRa1n 2.2: device / iOS target detection only.
+// No jailbreak exploit, Dopamine engine, or bootstrap installer is included.
 struct ContentView: View {
     @AppStorage("jrAccentColor") private var accentName = "green"
     @AppStorage("jrLanguage") private var language = "de"
@@ -29,13 +30,49 @@ struct ContentView: View {
         }
     }
 
-    // German is the fallback language.
     private func tr(_ de: String, _ en: String, _ es: String) -> String {
         switch language {
         case "en": return en
         case "es": return es
         default: return de
         }
+    }
+
+    private var isIPhoneX: Bool {
+        deviceID == "iPhone10,3" || deviceID == "iPhone10,6"
+    }
+
+    private var isTargetIOS: Bool {
+        osVersion == "16.7.15" || osVersion == "16.7.16"
+    }
+
+    private var isTargetCombination: Bool {
+        isIPhoneX && isTargetIOS
+    }
+
+    private var targetStatus: String {
+        if isTargetCombination {
+            return tr("Zielgerät erkannt", "Target device detected", "Dispositivo objetivo detectado")
+        }
+        if isIPhoneX {
+            return tr("Andere iOS-Version", "Different iOS version", "Otra versión de iOS")
+        }
+        return tr("Außerhalb des Zielbereichs", "Outside target scope", "Fuera del objetivo")
+    }
+
+    private var deviceReport: String {
+        let hardware = isIPhoneX
+            ? tr("iPhone X erkannt", "iPhone X detected", "iPhone X detectado")
+            : tr("Kein iPhone X erkannt", "Not an iPhone X", "No es un iPhone X")
+        let software = isTargetIOS
+            ? tr("Zielversion erkannt", "Target version detected", "Versión objetivo detectada")
+            : tr("Keine Zielversion", "Not a target version", "No es versión objetivo")
+        return "\(tr("Gerät", "Device", "Dispositivo")): \(deviceID)\n" +
+            "iOS: \(osVersion)\n\n" +
+            "\(hardware)\n\(software)\n\(targetStatus)\n\n" +
+            tr("Dies ist nur eine Geräte- und Versionsprüfung. Eine kompatible Jailbreak-Engine ist nicht integriert; ein Jailbreak wird nicht gestartet.",
+               "This only checks the device and OS version. No compatible jailbreak engine is integrated; no jailbreak is started.",
+               "Esto solo comprueba el dispositivo y la versión de iOS. No hay un motor de jailbreak integrado; no se inicia ningún jailbreak.")
     }
 
     var body: some View {
@@ -48,7 +85,7 @@ struct ContentView: View {
                         .font(.system(size: 37, weight: .bold, design: .rounded))
                         .minimumScaleFactor(0.75)
                         .lineLimit(1)
-                    Text("VERSION 2.1 · JAILBREAK CONTROL CENTER")
+                    Text("VERSION 2.2 · JAILBREAK CONTROL CENTER")
                         .font(.system(size: 10, design: .monospaced))
                         .multilineTextAlignment(.center)
                 }
@@ -60,6 +97,7 @@ struct ContentView: View {
                     infoRow(tr("Gerät", "Device", "Dispositivo"), deviceID)
                     infoRow(tr("iOS-Version", "iOS version", "Versión de iOS"), osVersion)
                     infoRow(tr("App-Status", "App status", "Estado de app"), tr("Bereit", "Ready", "Lista"), highlight: neon)
+                    infoRow(tr("Zielprüfung", "Target check", "Comprobación"), targetStatus, highlight: isTargetCombination ? neon : .orange)
                     infoRow(tr("Jailbreak-Engine", "Jailbreak engine", "Motor de jailbreak"), tr("Nicht verbunden", "Not connected", "Sin conexión"), highlight: .orange)
                 }
                 .padding(18)
@@ -102,12 +140,12 @@ struct ContentView: View {
                 .accessibilityLabel(tr("Jailbreak deaktiviert", "Jailbreak disabled", "Jailbreak desactivado"))
 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    actionButton(tr("Gerät prüfen", "Check device", "Verificar"), icon: "checkmark.shield") { showDevice = true }
+                    actionButton(tr("Gerät prüfen", "Check device", "Verificar"), icon: "checkmark.shield") { refresh(); showDevice = true }
                     actionButton(tr("Diagnose", "Diagnostics", "Diagnóstico"), icon: "terminal") { showDiagnostics = true }
-                    actionButton(tr("Bootstrap", "Bootstrap", "Bootstrap"), icon: "shippingbox") { showBootstrap = true }
+                    actionButton("Bootstrap", icon: "shippingbox") { showBootstrap = true }
                     actionButton(tr("Einstellungen", "Settings", "Ajustes"), icon: "gearshape") { showSettings = true }
                 }
-                Text("JailRa1n 2.1 · Engine Diagnostics")
+                Text("JailRa1n 2.2 · Engine Diagnostics")
                     .font(.caption2)
                     .foregroundStyle(neon.opacity(0.7))
                     .padding(.bottom, 20)
@@ -123,18 +161,15 @@ struct ContentView: View {
         .sheet(isPresented: $showSettings) { settingsSheet }
         .sheet(isPresented: $showDiagnostics) { diagnosticSheet }
         .sheet(isPresented: $showDevice) {
-            detailSheet(
-                title: tr("Gerät prüfen", "Check device", "Verificar dispositivo"),
-                message: "\(tr("Gerät", "Device", "Dispositivo")): \(deviceID)\niOS: \(osVersion)\n\n" + tr("Die App liest Geräteinformationen. Jailbreak-Kompatibilität ist nicht bestätigt.", "The app reads device information. Jailbreak compatibility is not confirmed.", "La app lee datos del dispositivo. La compatibilidad con jailbreak no está confirmada."),
-                isPresented: $showDevice
-            )
+            detailSheet(title: tr("Gerät prüfen", "Check device", "Verificar dispositivo"),
+                        message: deviceReport, isPresented: $showDevice)
         }
         .sheet(isPresented: $showBootstrap) {
-            detailSheet(
-                title: "Bootstrap",
-                message: tr("Kein Bootstrap-Installer integriert. Keine Systemänderungen.", "No bootstrap installer integrated. No system changes.", "No hay instalador de bootstrap integrado. Sin cambios del sistema."),
-                isPresented: $showBootstrap
-            )
+            detailSheet(title: "Bootstrap",
+                        message: tr("Kein Bootstrap-Installer integriert. Keine Systemänderungen.",
+                                    "No bootstrap installer integrated. No system changes.",
+                                    "No hay instalador de bootstrap integrado. Sin cambios del sistema."),
+                        isPresented: $showBootstrap)
         }
     }
 
@@ -176,7 +211,6 @@ struct ContentView: View {
                         }
                         .frame(maxWidth: .infinity)
                     }
-
                     VStack(alignment: .leading, spacing: 12) {
                         Label(tr("Sprache", "Language", "Idioma"), systemImage: "globe")
                             .font(.headline).foregroundStyle(neon)
@@ -184,11 +218,10 @@ struct ContentView: View {
                         languageChoice("en", title: "🇬🇧 English")
                         languageChoice("es", title: "🇪🇸 Español")
                     }
-
                     Divider().overlay(neon.opacity(0.35))
                     Text(tr("Diagnosemodus: Nur Lesen", "Diagnostics mode: Read only", "Modo diagnóstico: Solo lectura"))
                     Text(tr("Native Engine: Nicht verbunden", "Native engine: Not connected", "Motor nativo: Sin conexión"))
-                    Text("JailRa1n 2.1")
+                    Text("JailRa1n 2.2")
                 }
                 .font(.system(size: 14, design: .monospaced))
                 .foregroundStyle(.gray)
@@ -219,7 +252,8 @@ struct ContentView: View {
                 }
             }
             .padding(3)
-            .overlay(Circle().stroke(accentName == name ? Color.white : Color.gray.opacity(0.4), lineWidth: accentName == name ? 2.5 : 1))
+            .overlay(Circle().stroke(accentName == name ? Color.white : Color.gray.opacity(0.4),
+                                     lineWidth: accentName == name ? 2.5 : 1))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(name)
@@ -256,7 +290,7 @@ struct ContentView: View {
                 .padding()
             }
             .background(Color.black)
-            .navigationTitle(tr("Live-Diagnose 2.1", "Live diagnostics 2.1", "Diagnóstico 2.1"))
+            .navigationTitle(tr("Live-Diagnose 2.2", "Live diagnostics 2.2", "Diagnóstico 2.2"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -297,13 +331,21 @@ struct ContentView: View {
             String(decoding: bytes.prefix(while: { $0 != 0 }), as: UTF8.self)
         }
         osVersion = UIDevice.current.systemVersion
+
+        let hardwareLine = isIPhoneX ? "[OK] IPHONE X TARGET DETECTED" : "[INFO] NOT AN IPHONE X TARGET"
+        let iosLine = isTargetIOS ? "[OK] IOS TARGET VERSION DETECTED" : "[INFO] IOS OUTSIDE TARGET VERSIONS"
+        let combinedLine = isTargetCombination
+            ? "[OK] DEVICE + IOS MATCH TARGET PROFILE"
+            : "[INFO] TARGET PROFILE NOT MATCHED"
         terminalLines = [
-            "> BOOTING JAILRA1N 2.1...",
+            "> BOOTING JAILRA1N 2.2...",
             "[OK] DEVICE: \(deviceID)",
             "[OK] IOS: \(osVersion)",
-            "[OK] DIAGNOSTICS ACTIVE",
+            hardwareLine,
+            iosLine,
+            combinedLine,
             "[INFO] DOPAMINE NOT VERIFIED",
-            "[WARN] JAILBREAK ENGINE MISSING",
+            "[WARN] JAILBREAK ENGINE NOT CONNECTED",
             "[SAFE] NO SYSTEM CHANGES"
         ]
         shownLines = 0
