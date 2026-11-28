@@ -25,12 +25,17 @@ struct JRLiveDiagnosticsView: View {
                     Divider()
                         .overlay(green)
 
-                    ForEach(lines, id: \.self) { line in
+                    ForEach(
+                        Array(lines.enumerated()),
+                        id: \.offset
+                    ) { _, line in
                         Text(line)
-                            .font(.system(
-                                size: 13,
-                                design: .monospaced
-                            ))
+                            .font(
+                                .system(
+                                    size: 13,
+                                    design: .monospaced
+                                )
+                            )
                     }
 
                     Button("DIAGNOSE ERNEUT STARTEN") {
@@ -41,7 +46,10 @@ struct JRLiveDiagnosticsView: View {
                     .padding(.top, 20)
                 }
                 .foregroundStyle(green)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(
+                    maxWidth: .infinity,
+                    alignment: .leading
+                )
                 .padding()
             }
             .background(Color.black)
@@ -57,24 +65,36 @@ struct JRLiveDiagnosticsView: View {
         var systemInfo = utsname()
         uname(&systemInfo)
 
-        let machine = withUnsafePointer(to: &systemInfo.machine) {
-            $0.withMemoryRebound(
-                to: CChar.self,
-                capacity: MemoryLayout.size(
-                    ofValue: systemInfo.machine
-                )
-            ) {
-                String(cString: $0)
-            }
+        // Kopie verhindert überlappende Speicherzugriffe.
+        var machineCopy = systemInfo.machine
+
+        let deviceIdentifier = withUnsafeBytes(
+            of: &machineCopy
+        ) { rawBuffer in
+            let bytes = rawBuffer.prefix(
+                while: { $0 != 0 }
+            )
+
+            return String(
+                decoding: bytes,
+                as: UTF8.self
+            )
         }
 
         let version = UIDevice.current.systemVersion
 
+        let isIPhoneX =
+            deviceIdentifier == "iPhone10,3" ||
+            deviceIdentifier == "iPhone10,6"
+
         lines = [
             "> INITIALIZING JAILRA1N...",
-            "> DEVICE: \(machine)",
+            "> DEVICE: \(deviceIdentifier)",
             "> IOS: \(version)",
             "[OK] DEVICE INFORMATION READ",
+            isIPhoneX
+                ? "[OK] IPHONE X DETECTED"
+                : "[INFO] DEVICE IS NOT IPHONE X",
             "[WARN] NATIVE ENGINE NOT CONNECTED",
             "[INFO] DOPAMINE NOT VERIFIED",
             "[INFO] SILEO NOT VERIFIED",
