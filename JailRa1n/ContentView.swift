@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 import Darwin
 
-// JailRa1n 2.2: device / iOS target detection only.
+// JailRa1n 2.3: device / iOS target detection only.
 // No jailbreak exploit, Dopamine engine, or bootstrap installer is included.
 struct ContentView: View {
     @AppStorage("jrAccentColor") private var accentName = "green"
@@ -17,6 +17,7 @@ struct ContentView: View {
     @State private var showBootstrap = false
     @State private var showSettings = false
     @State private var showDevice = false
+    @State private var showEngine = false
 
     private let panel = Color(red: 0.055, green: 0.085, blue: 0.065)
 
@@ -60,6 +61,27 @@ struct ContentView: View {
         return tr("Außerhalb des Zielbereichs", "Outside target scope", "Fuera del objetivo")
     }
 
+    // This is a read-only integration checklist, not an exploit detector.
+    // Do not infer native engine availability from iOS version alone.
+    private var engineReport: String {
+        let hardware = isIPhoneX
+            ? tr("iPhone X: erkannt", "iPhone X: detected", "iPhone X: detectado")
+            : tr("iPhone X: nicht erkannt", "iPhone X: not detected", "iPhone X: no detectado")
+        let software = isTargetIOS
+            ? tr("Ziel-iOS: erkannt", "Target iOS: detected", "iOS objetivo: detectado")
+            : tr("Ziel-iOS: nicht erkannt", "Target iOS: not detected", "iOS objetivo: no detectado")
+        return "JailRa1n 2.3\n\n" +
+            "\(hardware)\n\(software)\n" +
+            "\(tr("Zielprofil", "Target profile", "Perfil objetivo")): \(targetStatus)\n\n" +
+            tr("Dopamine-App: nicht überprüft", "Dopamine app: not verified", "App Dopamine: sin verificar") + "\n" +
+            tr("Native Engine: nicht verbunden", "Native engine: not connected", "Motor nativo: sin conexión") + "\n" +
+            tr("Signierung/Entitlements: nicht geprüft", "Signing/entitlements: not verified", "Firma/permisos: sin verificar") + "\n" +
+            tr("Aktiver Jailbreak: nicht überprüft", "Active jailbreak: not verified", "Jailbreak activo: sin verificar") + "\n\n" +
+            tr("Nur Diagnose. Keine Exploits, kein Bootstrap, keine Systemänderungen.",
+               "Diagnostics only. No exploits, bootstrap, or system changes.",
+               "Solo diagnóstico. Sin exploits, bootstrap ni cambios del sistema.")
+    }
+
     private var deviceReport: String {
         let hardware = isIPhoneX
             ? tr("iPhone X erkannt", "iPhone X detected", "iPhone X detectado")
@@ -85,7 +107,7 @@ struct ContentView: View {
                         .font(.system(size: 37, weight: .bold, design: .rounded))
                         .minimumScaleFactor(0.75)
                         .lineLimit(1)
-                    Text("VERSION 2.2 · JAILBREAK CONTROL CENTER")
+                    Text("VERSION 2.3 · JAILBREAK CONTROL CENTER")
                         .font(.system(size: 10, design: .monospaced))
                         .multilineTextAlignment(.center)
                 }
@@ -142,10 +164,11 @@ struct ContentView: View {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                     actionButton(tr("Gerät prüfen", "Check device", "Verificar"), icon: "checkmark.shield") { refresh(); showDevice = true }
                     actionButton(tr("Diagnose", "Diagnostics", "Diagnóstico"), icon: "terminal") { showDiagnostics = true }
+                    actionButton(tr("Engine-Check", "Engine check", "Comprobar motor"), icon: "cpu") { refresh(); showEngine = true }
                     actionButton("Bootstrap", icon: "shippingbox") { showBootstrap = true }
                     actionButton(tr("Einstellungen", "Settings", "Ajustes"), icon: "gearshape") { showSettings = true }
                 }
-                Text("JailRa1n 2.2 · Engine Diagnostics")
+                Text("JailRa1n 2.3 · Engine Diagnostics")
                     .font(.caption2)
                     .foregroundStyle(neon.opacity(0.7))
                     .padding(.bottom, 20)
@@ -160,6 +183,10 @@ struct ContentView: View {
         .onAppear(perform: refresh)
         .sheet(isPresented: $showSettings) { settingsSheet }
         .sheet(isPresented: $showDiagnostics) { diagnosticSheet }
+        .sheet(isPresented: $showEngine) {
+            detailSheet(title: tr("Engine-Check", "Engine check", "Comprobar motor"),
+                        message: engineReport, isPresented: $showEngine)
+        }
         .sheet(isPresented: $showDevice) {
             detailSheet(title: tr("Gerät prüfen", "Check device", "Verificar dispositivo"),
                         message: deviceReport, isPresented: $showDevice)
@@ -221,7 +248,7 @@ struct ContentView: View {
                     Divider().overlay(neon.opacity(0.35))
                     Text(tr("Diagnosemodus: Nur Lesen", "Diagnostics mode: Read only", "Modo diagnóstico: Solo lectura"))
                     Text(tr("Native Engine: Nicht verbunden", "Native engine: Not connected", "Motor nativo: Sin conexión"))
-                    Text("JailRa1n 2.2")
+                    Text("JailRa1n 2.3")
                 }
                 .font(.system(size: 14, design: .monospaced))
                 .foregroundStyle(.gray)
@@ -290,7 +317,7 @@ struct ContentView: View {
                 .padding()
             }
             .background(Color.black)
-            .navigationTitle(tr("Live-Diagnose 2.2", "Live diagnostics 2.2", "Diagnóstico 2.2"))
+            .navigationTitle(tr("Live-Diagnose 2.3", "Live diagnostics 2.3", "Diagnóstico 2.3"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -338,12 +365,15 @@ struct ContentView: View {
             ? "[OK] DEVICE + IOS MATCH TARGET PROFILE"
             : "[INFO] TARGET PROFILE NOT MATCHED"
         terminalLines = [
-            "> BOOTING JAILRA1N 2.2...",
+            "> BOOTING JAILRA1N 2.3...",
             "[OK] DEVICE: \(deviceID)",
             "[OK] IOS: \(osVersion)",
             hardwareLine,
             iosLine,
             combinedLine,
+            "[INFO] ENGINE BRIDGE: NOT CONNECTED",
+            "[INFO] SIGNING / ENTITLEMENTS: NOT VERIFIED",
+            "[INFO] ACTIVE JAILBREAK: NOT VERIFIED",
             "[INFO] DOPAMINE NOT VERIFIED",
             "[WARN] JAILBREAK ENGINE NOT CONNECTED",
             "[SAFE] NO SYSTEM CHANGES"
